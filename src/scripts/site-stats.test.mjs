@@ -3,7 +3,7 @@ import test from "node:test";
 import { formatClock, renderSiteStats } from "./site-stats.mjs";
 
 test("formatClock renders a Chinese date and time", () => {
-  const clock = formatClock(new Date("2026-05-17T09:08:07+09:00"));
+  const clock = formatClock(new Date(2026, 4, 17, 9, 8, 7));
 
   assert.match(clock, /2026/);
   assert.match(clock, /05/);
@@ -21,7 +21,7 @@ test("renderSiteStats writes only the clock into the provided element", () => {
 
   renderSiteStats({
     clockElement,
-    now: () => new Date("2026-05-17T09:08:07+09:00"),
+    now: () => new Date(2026, 4, 17, 9, 8, 7),
     fetcher: async () => {
       fetchCalled = true;
     },
@@ -29,6 +29,6 @@ test("renderSiteStats writes only the clock into the provided element", () => {
   });
 
   assert.match(clockElement.textContent, /09:08:07/);
-  assert.equal(attributes.get("datetime"), "2026-05-17T00:08:07.000Z");
+  assert.equal(attributes.get("datetime"), new Date(2026, 4, 17, 9, 8, 7).toISOString());
   assert.equal(fetchCalled, false);
 });
