@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+.superpowers/
+.tmp-screens/
+docs/superpowers/
+.env
+.env.local
+.dev.vars
+.wrangler.deploy.jsonc
+.env.control-center
+.control-center/
+.codex/
+npm-debug.log*
+.DS_Store

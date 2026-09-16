@@ -1,0 +1,57 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const posts = (await getCollection("posts"))
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+---
+
+<BaseLayout
+  title="Quiet Edge"
+  description="A calm Markdown blog published at the edge."
+>
+  <section class="hero" aria-labelledby="page-title">
+    <p class="eyebrow">Markdown notes at the edge</p>
+    <h1 id="page-title">安静地写，慢慢地读。</h1>
+    <p class="hero-copy">
+      一个文件式 Markdown 博客，放下多余功能，把注意力留给文章、笔记和那些值得反复看的想法。
+    </p>
+  </section>
+
+  <section class="post-list" id="archive" aria-labelledby="archive-title">
+    <div class="section-heading">
+      <h2 id="archive-title">最近文章</h2>
+      <p>{posts.length} 篇公开文章</p>
+    </div>
+
+    {
+      posts.map((post) => (
+        <article class="post-card">
+          <div class="post-meta">
+            <time datetime={post.data.date.toISOString()}>
+              {formatDate(post.data.date)}
+            </time>
+            <span>{post.data.tags.join(" / ")}</span>
+          </div>
+          <h3>
+            <a href={`/posts/${post.id}/`}>{post.data.title}</a>
+          </h3>
+          <p>{post.data.description}</p>
+          <div class="tag-row" aria-label="Tags">
+            {post.data.tags.map((tag) => (
+              <span>{tag}</span>
+            ))}
+          </div>
+        </article>
+      ))
+    }
+  </section>
+</BaseLayout>

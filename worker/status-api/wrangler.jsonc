@@ -1,0 +1,27 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "developer-control-center-status",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-13",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vpc_networks": [
+    {
+      "binding": "MESH",
+      "network_id": "cf1:network",
+      "remote": true
+    }
+  ],
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+  "vars": {
+    "STATUS_SERVICE_HOSTS": "[\"100.96.0.10\",\"100.96.0.11\",\"100.96.0.12\"]",
+    "STATUS_SERVICE_PORT": "18787",
+    "ALLOWED_ORIGINS": "https://dashboard.example.com,https://developer-control-center.pages.dev",
+    "ALERT_CONFIRM_MINUTES": "3"
+  }
+}

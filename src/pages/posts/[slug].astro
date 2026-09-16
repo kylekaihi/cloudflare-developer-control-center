@@ -1,0 +1,104 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("posts")).filter((post) => !post.data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+---
+
+<BaseLayout title={post.data.title} description={post.data.description}>
+  <article class="article">
+    <header class="article-header">
+      <a class="back-link" href="/">Back to writing</a>
+      <p class="post-meta">
+        <time datetime={post.data.date.toISOString()}>
+          {formatDate(post.data.date)}
+        </time>
+        <span>{post.data.tags.join(" / ")}</span>
+      </p>
+      <h1>{post.data.title}</h1>
+      <p class="article-description">{post.data.description}</p>
+      <div class="tag-row" aria-label="Tags">
+        {post.data.tags.map((tag: string) => (
+          <span>{tag}</span>
+        ))}
+      </div>
+    </header>
+    {post.data.cover && (
+      <figure class="article-cover">
+        <img src={post.data.cover} alt={post.data.coverAlt ?? ""} loading="eager" />
+        {post.data.coverAlt && <figcaption>{post.data.coverAlt}</figcaption>}
+      </figure>
+    )}
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+  <script>
+    const prose = document.querySelector(".prose");
+
+    prose?.querySelectorAll("p > img:only-child").forEach((image) => {
+      const paragraph = image.parentElement;
+      if (!paragraph) return;
+
+      const figure = document.createElement("figure");
+      figure.className = "image-frame";
+      paragraph.replaceWith(figure);
+      figure.append(image);
+
+      const alt = image.getAttribute("alt");
+      if (alt) {
+        const caption = document.createElement("figcaption");
+        caption.textContent = alt;
+        figure.append(caption);
+      }
+    });
+
+    prose?.querySelectorAll("pre").forEach((pre) => {
+      if (pre.parentElement?.classList.contains("code-frame")) return;
+
+      const frame = document.createElement("div");
+      frame.className = "code-frame";
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "copy-code";
+      button.setAttribute("aria-label", "Copy code");
+      button.textContent = "Copy";
+
+      pre.before(frame);
+      frame.append(button, pre);
+    });
+
+    const copyButtons = document.querySelectorAll<HTMLButtonElement>(".copy-code");
+
+    copyButtons.forEach((button) => {
+      button.addEventListener("click", async () => {
+        const frame = button.closest(".code-frame");
+        const code = frame?.querySelector("pre")?.textContent;
+        if (!code) return;
+
+        await navigator.clipboard.writeText(code.trimEnd());
+        button.textContent = "Copied";
+        window.setTimeout(() => {
+          button.textContent = "Copy";
+        }, 1600);
+      });
+    });
+  </script>
+</BaseLayout>

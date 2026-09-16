@@ -1,0 +1,45 @@
+{
+  "name": "cloudflare-developer-control-center",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "test": "node --test src/scripts/*.test.mjs scripts/control-center/*.test.mjs status-api/*.test.mjs",
+    "check:uploader": "wrangler deploy --dry-run --config worker/wrangler.jsonc",
+    "deploy:uploader": "wrangler deploy --config worker/wrangler.jsonc",
+    "check:status-worker": "wrangler deploy --dry-run --config worker/status-api/wrangler.jsonc",
+    "deploy:status-worker": "wrangler deploy --config worker/status-api/wrangler.jsonc",
+    "preflight": "node scripts/control-center/preflight.mjs",
+    "preflight:deploy": "node scripts/control-center/preflight.mjs --deploy --quality",
+    "ci:quality": "npm audit --audit-level=high && npm run check:runtime && npm run preflight && npm test && npm run test:worker && npm run build && npm run verify",
+    "check:runtime": "node scripts/check-runtime-syntax.mjs",
+    "configure:control-center": "node scripts/configure-control-center.mjs",
+    "configure:push": "node scripts/configure-push.mjs",
+    "configure:vps-control": "node scripts/configure-vps-control.mjs",
+    "deploy:control-center": "node scripts/deploy-control-center.mjs",
+    "verify:control-center": "node scripts/postdeploy-control-center.mjs",
+    "rollback:control-center": "node scripts/rollback-control-center.mjs",
+    "backup:control-center": "node scripts/backup-control-center.mjs",
+    "restore:control-center": "node scripts/restore-control-center.mjs",
+    "rotate:service-token": "node scripts/rotate-service-token.mjs",
+    "vps:status-api": "node scripts/deploy-vps-status-api.mjs",
+    "preview": "astro preview",
+    "test:worker": "node --test worker/test/*.test.mjs worker/status-api/test/*.test.mjs functions/dashboard/api/proxy.test.mjs",
+    "upload:image": "node scripts/r2-upload-image.mjs",
+    "verify": "node scripts/verify-site.mjs"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.10",
+    "astro": "^7.2.1",
+    "typescript": "^5.9.3",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "wrangler": "^4.122.0"
+  }
+}

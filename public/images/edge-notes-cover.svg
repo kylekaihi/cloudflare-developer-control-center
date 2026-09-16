@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 820" role="img" aria-labelledby="title desc">
+  <title id="title">Quiet Edge cover</title>
+  <desc id="desc">A calm editorial illustration of Markdown notes and code blocks.</desc>
+  <rect width="1400" height="820" fill="#f6f0e7"/>
+  <rect x="128" y="104" width="1144" height="612" rx="18" fill="#fffdf8" stroke="#dfd4c5" stroke-width="3"/>
+  <rect x="196" y="168" width="452" height="56" rx="8" fill="#1f2529"/>
+  <rect x="196" y="252" width="768" height="28" rx="6" fill="#d5c3ae"/>
+  <rect x="196" y="304" width="614" height="24" rx="6" fill="#e7dacb"/>
+  <rect x="196" y="372" width="468" height="24" rx="6" fill="#c9b092"/>
+  <rect x="196" y="420" width="814" height="132" rx="12" fill="#24211e"/>
+  <rect x="236" y="456" width="174" height="16" rx="4" fill="#d9a566"/>
+  <rect x="436" y="456" width="312" height="16" rx="4" fill="#f4e7d5"/>
+  <rect x="236" y="498" width="282" height="16" rx="4" fill="#93a88f"/>
+  <rect x="548" y="498" width="198" height="16" rx="4" fill="#d7c5b0"/>
+  <rect x="836" y="168" width="312" height="176" rx="14" fill="#efe4d6" stroke="#dfd4c5" stroke-width="2"/>
+  <path d="M886 292l66-72 60 46 44-38 42 64H886z" fill="#a87957"/>
+  <circle cx="1076" cy="212" r="25" fill="#c9b092"/>
+  <rect x="196" y="600" width="704" height="22" rx="6" fill="#d8c9b7"/>
+  <rect x="196" y="642" width="498" height="22" rx="6" fill="#e7dacb"/>
+</svg>

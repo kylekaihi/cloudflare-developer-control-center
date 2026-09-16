@@ -1,0 +1,51 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const siteName = "Quiet Edge";
+const {
+  title = siteName,
+  description = "A calm Markdown blog published at the edge.",
+} = Astro.props;
+
+const pageTitle = title === siteName ? siteName : `${title} - ${siteName}`;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="site-mark" href="/" aria-label="Quiet Edge home">Quiet Edge</a>
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="/">Writing</a>
+          <a href="/#archive">Archive</a>
+          <a href="/dashboard/">Control Center</a>
+        </nav>
+      </header>
+      <aside class="site-stats" aria-label="Site statistics">
+        <span>现在 <time data-current-time datetime=""></time></span>
+      </aside>
+      <main>
+        <slot />
+      </main>
+      <footer class="site-footer">
+        <span>Written in Markdown. Published on Cloudflare Pages.</span>
+      </footer>
+    </div>
+    <script>
+      import "../scripts/site-stats.mjs";
+    </script>
+  </body>
+</html>

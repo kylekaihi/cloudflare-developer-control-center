@@ -1,0 +1,574 @@
+---
+import "../styles/global.css";
+
+const statusApiUrl = import.meta.env.PUBLIC_STATUS_API_URL || "/dashboard/api/status";
+---
+
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Cloudflare Developer Control Center" />
+    <meta name="application-name" content="Developer Control Center" />
+    <meta name="theme-color" content="#111615" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Control Center" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="manifest" href="/dashboard/manifest.webmanifest" />
+    <link rel="icon" href="/dashboard/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/dashboard/apple-touch-icon-180.png" />
+    <title>Developer Control Center</title>
+  </head>
+  <body class="control-center" data-language="zh">
+    <main class="control-shell" id="overview">
+      <header class="control-header">
+        <div>
+          <p class="control-eyebrow" data-i18n="eyebrow">PRIVATE OPERATIONS / READ ONLY</p>
+          <h1>Developer Control Center</h1>
+          <p class="control-intro" data-i18n="intro">Cloudflare 管理面与 VPS 运行状态的只读视图。</p>
+        </div>
+        <div class="control-header-actions">
+          <div class="control-header-meta"><span class="status-dot" data-overall-dot></span><span data-overall-label data-i18n="waiting">等待连接</span></div>
+          <button class="install-button" type="button" data-install hidden data-i18n="install">安装</button>
+          <button class="install-button" type="button" data-push hidden data-i18n="enablePush">启用通知</button>
+          <button class="language-toggle" type="button" data-language-toggle>EN</button>
+        </div>
+      </header>
+
+      <section class="control-toolbar" id="connection" data-i18n-attr="aria-label:toolbarLabel">
+        <div class="access-identity"><span class="access-lock" aria-hidden="true">●</span><div><span data-i18n="accessLabel">CLOUDFLARE ACCESS</span><strong data-i18n="accessProtected">身份验证已启用</strong></div></div>
+        <button type="button" data-load data-i18n="refresh">刷新状态</button>
+        <span class="control-updated" data-updated data-i18n="notRead">尚未读取</span>
+        <a class="access-logout" href="/cdn-cgi/access/logout" data-i18n="logout">退出</a>
+      </section>
+
+      <aside class="pwa-notice" data-pwa-notice role="status" aria-live="polite" hidden>
+        <span class="pwa-notice-dot" aria-hidden="true"></span>
+        <p data-pwa-message></p>
+        <button class="pwa-notice-action" type="button" data-pwa-action hidden></button>
+        <button class="pwa-notice-dismiss" type="button" data-pwa-dismiss data-i18n-attr="aria-label:dismiss">×</button>
+      </aside>
+
+      <p class="control-error" data-error hidden></p>
+
+      <section class="metric-grid" data-i18n-attr="aria-label:metricsLabel">
+        <article class="metric-card"><span data-i18n="cpu">CPU</span><strong data-metric="cpuPercent">—</strong><small data-i18n="load">负载</small></article>
+        <article class="metric-card"><span data-i18n="memory">内存</span><strong data-metric="memoryPercent">—</strong><small data-i18n="used">已使用</small></article>
+        <article class="metric-card"><span data-i18n="disk">磁盘</span><strong data-metric="diskPercent">—</strong><small data-i18n="used">已使用</small></article>
+        <article class="metric-card"><span data-i18n="uptime">运行时间</span><strong data-metric="uptimeSeconds">—</strong><small data-uptime-label data-i18n="hostUptime">主机运行时间</small></article>
+      </section>
+
+      <section class="control-section" id="services-panel" aria-labelledby="services-title">
+        <div class="control-section-heading"><div><p class="control-eyebrow">SERVICES</p><h2 id="services-title" data-i18n="services">运行中的服务</h2></div><span class="control-muted" data-service-count>—</span></div>
+        <div class="service-list" data-services><p class="empty-state" data-i18n="serviceEmpty">正在等待首次状态读取。</p></div>
+      </section>
+
+      <div class="control-dual-grid">
+        <section class="control-section control-section-compact" id="availability-panel" aria-labelledby="availability-title">
+          <div class="control-section-heading"><div><p class="control-eyebrow">AVAILABILITY</p><h2 id="availability-title" data-i18n="availability">服务可用率</h2></div><div class="history-ranges"><button class="is-active" type="button" data-availability-range="7d">7D</button><button type="button" data-availability-range="30d">30D</button><button type="button" data-availability-range="since" data-i18n="since">部署以来</button></div></div>
+          <div class="availability-list" data-availability><p class="empty-state" data-i18n="availabilityEmpty">等待服务历史数据。</p></div>
+        </section>
+        <section class="control-section control-section-compact" id="events-panel" aria-labelledby="events-title">
+          <div class="control-section-heading"><div><p class="control-eyebrow">EVENT TIMELINE</p><h2 id="events-title" data-i18n="events">事件时间线</h2></div><div class="event-actions"><select data-event-type aria-label="Event type"><option value="" data-i18n="allEvents">全部事件</option><option value="incident_opened" data-i18n="failures">故障</option><option value="incident_resolved" data-i18n="recoveries">恢复</option><option value="deployment_changed" data-i18n="deployments">部署版本</option><option value="control_restart" data-i18n="operations">管理操作</option></select><button type="button" data-events-export>CSV</button><span class="control-muted" data-event-count>—</span></div></div>
+          <div class="event-list" data-events><p class="empty-state" data-i18n="eventsEmpty">暂无运维事件。</p></div>
+        </section>
+      </div>
+
+      <div class="control-dual-grid">
+        <section class="control-section control-section-compact" id="alerts-panel" aria-labelledby="alerts-title">
+          <div class="control-section-heading"><div><p class="control-eyebrow">ALERTS</p><h2 id="alerts-title" data-i18n="alerts">当前告警</h2></div><span class="control-muted" data-alert-count>—</span></div>
+          <div class="alert-list" data-alerts><p class="empty-state" data-i18n="alertEmpty">读取状态后显示当前告警。</p></div>
+        </section>
+
+        <section class="control-section control-section-compact" id="trading-panel" aria-labelledby="trading-title">
+          <div class="control-section-heading"><div><p class="control-eyebrow">TRADING SNAPSHOT</p><h2 id="trading-title" data-i18n="trading">交易摘要</h2></div><span class="control-muted" data-trading-status>—</span></div>
+          <div class="summary-grid" data-trading><p class="empty-state" data-i18n="tradingEmpty">尚未配置交易摘要。</p></div>
+        </section>
+      </div>
+
+      <section class="control-section" id="nodes-panel" aria-labelledby="hosts-title">
+        <div class="control-section-heading"><div><p class="control-eyebrow">VPS NODES</p><h2 id="hosts-title" data-i18n="nodes">Mesh 节点</h2></div><span class="control-muted" data-host-count>—</span></div>
+        <div class="host-grid" data-hosts><p class="empty-state" data-i18n="nodeEmpty">读取状态后显示配置的 VPS 节点。</p></div>
+      </section>
+
+      <div class="control-dual-grid">
+        <section class="control-section control-section-compact" id="deployments-panel" aria-labelledby="deployments-title">
+          <div class="control-section-heading"><div><p class="control-eyebrow">DEPLOYMENTS</p><h2 id="deployments-title" data-i18n="deployments">部署版本</h2></div></div>
+          <div class="deployment-list" data-deployments><p class="empty-state" data-i18n="deploymentEmpty">读取状态后显示部署版本。</p></div>
+        </section>
+
+        <section class="control-section control-section-compact" id="history-panel" aria-labelledby="history-title">
+          <div class="control-section-heading"><div><p class="control-eyebrow">METRICS HISTORY</p><h2 id="history-title" data-i18n="history">指标历史</h2></div><div class="history-actions"><select data-history-host aria-label="VPS node"><option value="" data-i18n="allNodes">全部节点</option></select><div class="history-ranges" aria-label="Metrics range"><button class="is-active" type="button" data-history-range="1h">1H</button><button type="button" data-history-range="24h">24H</button><button type="button" data-history-range="7d">7D</button><button type="button" data-history-range="30d">30D</button></div><button type="button" class="history-export" data-history-export>CSV</button><span class="control-muted" data-history-count>—</span></div></div>
+          <div class="history-panel" data-history><p class="empty-state" data-i18n="historyEmpty">刷新几次后显示指标历史。</p></div>
+        </section>
+      </div>
+
+      <footer class="control-footer"><span data-i18n="stack">Cloudflare Pages · Workers VPC · Cloudflare Mesh</span><span data-i18n="readOnly">写操作未启用</span></footer>
+    </main>
+
+    <nav class="mobile-nav" aria-label="Mobile dashboard navigation" data-mobile-nav>
+      <a class="mobile-nav-item is-active" href="#overview"><span class="mobile-nav-icon" aria-hidden="true">⌂</span><span data-i18n="navOverview">概览</span></a>
+      <a class="mobile-nav-item" href="#services-panel"><span class="mobile-nav-icon" aria-hidden="true">≡</span><span data-i18n="navServices">服务</span></a>
+      <a class="mobile-nav-item" href="#nodes-panel"><span class="mobile-nav-icon" aria-hidden="true">◎</span><span data-i18n="navNodes">节点</span></a>
+      <a class="mobile-nav-item" href="#alerts-panel"><span class="mobile-nav-icon" aria-hidden="true">!</span><span data-i18n="navAlerts">告警</span><b class="mobile-nav-badge" data-mobile-alert-count hidden>0</b></a>
+    </nav>
+
+    <dialog class="install-dialog" data-install-dialog aria-labelledby="install-dialog-title">
+      <form method="dialog">
+        <div class="install-dialog-icon" aria-hidden="true"><img src="/dashboard/icon-192.png" alt="" /></div>
+        <div>
+          <h2 id="install-dialog-title" data-i18n="installTitle">安装 Control Center</h2>
+          <p data-i18n="installIos">在 Safari 中点击“共享”，然后选择“添加到主屏幕”。</p>
+        </div>
+        <button type="submit" data-i18n="close">知道了</button>
+      </form>
+    </dialog>
+
+    <dialog class="service-dialog" data-service-dialog aria-labelledby="service-dialog-title">
+      <div class="service-dialog-shell">
+        <header><div><p class="control-eyebrow">SERVICE DETAIL</p><h2 id="service-dialog-title" data-service-dialog-title>—</h2><p data-service-dialog-host>—</p></div><button type="button" data-service-dialog-close aria-label="Close">×</button></header>
+        <div class="service-detail-metrics" data-service-detail-metrics></div>
+        <div class="history-ranges service-detail-ranges"><button class="is-active" type="button" data-service-range="24h">24H</button><button type="button" data-service-range="7d">7D</button><button type="button" data-service-range="30d">30D</button><button type="button" data-service-range="since" data-i18n="since">部署以来</button></div>
+        <div class="service-detail-chart" data-service-detail-chart><p class="empty-state" data-i18n="historyEmpty">等待定时采集产生历史数据。</p></div>
+      </div>
+    </dialog>
+
+    <dialog class="service-dialog node-dialog" data-node-dialog aria-labelledby="node-dialog-title">
+      <div class="service-dialog-shell">
+        <header><div><p class="control-eyebrow">VPS MANAGEMENT / READ ONLY</p><h2 id="node-dialog-title" data-node-dialog-title>—</h2><p data-node-dialog-address>—</p></div><button type="button" data-node-dialog-close aria-label="Close">×</button></header>
+        <div class="node-facts" data-node-facts></div>
+        <section class="node-detail-section"><h3 data-i18n="storage">存储</h3><div class="node-detail-list" data-node-storage></div></section>
+        <section class="node-detail-section"><h3 data-i18n="network">私有网络</h3><div class="node-detail-list" data-node-network></div></section>
+        <section class="node-detail-section"><h3 data-i18n="services">运行中的服务</h3><div class="node-detail-list" data-node-services></div></section>
+        <section class="node-detail-section"><h3 data-i18n="serviceLogs">服务日志</h3><pre class="control-logs" data-node-logs data-i18n="selectLogs">选择“日志”读取最近输出。</pre></section>
+        <section class="node-detail-section"><h3 data-i18n="auditLog">操作审计</h3><div class="node-detail-list" data-control-audit></div></section>
+      </div>
+    </dialog>
+
+    <script is:inline define:vars={{ statusApiUrl }}>
+      const loadButton = document.querySelector("[data-load]");
+      const error = document.querySelector("[data-error]");
+      const updated = document.querySelector("[data-updated]");
+      const overallDot = document.querySelector("[data-overall-dot]");
+      const overallLabel = document.querySelector("[data-overall-label]");
+      const services = document.querySelector("[data-services]");
+      const serviceCount = document.querySelector("[data-service-count]");
+      const alerts = document.querySelector("[data-alerts]");
+      const alertCount = document.querySelector("[data-alert-count]");
+      const trading = document.querySelector("[data-trading]");
+      const tradingStatus = document.querySelector("[data-trading-status]");
+      const hosts = document.querySelector("[data-hosts]");
+      const hostCount = document.querySelector("[data-host-count]");
+      const deployments = document.querySelector("[data-deployments]");
+      const historyPanel = document.querySelector("[data-history]");
+      const historyCount = document.querySelector("[data-history-count]");
+      const historyRangeButtons = [...document.querySelectorAll("[data-history-range]")];
+      const historyHost = document.querySelector("[data-history-host]");
+      const historyExport = document.querySelector("[data-history-export]");
+      const availability = document.querySelector("[data-availability]");
+      const availabilityRangeButtons = [...document.querySelectorAll("[data-availability-range]")];
+      const events = document.querySelector("[data-events]");
+      const eventCount = document.querySelector("[data-event-count]");
+      const eventType = document.querySelector("[data-event-type]");
+      const eventsExport = document.querySelector("[data-events-export]");
+      const serviceDialog = document.querySelector("[data-service-dialog]");
+      const serviceDialogTitle = document.querySelector("[data-service-dialog-title]");
+      const serviceDialogHost = document.querySelector("[data-service-dialog-host]");
+      const serviceDetailMetrics = document.querySelector("[data-service-detail-metrics]");
+      const serviceDetailChart = document.querySelector("[data-service-detail-chart]");
+      const serviceRangeButtons = [...document.querySelectorAll("[data-service-range]")];
+      const nodeDialog = document.querySelector("[data-node-dialog]");
+      const nodeDialogTitle = document.querySelector("[data-node-dialog-title]");
+      const nodeDialogAddress = document.querySelector("[data-node-dialog-address]");
+      const nodeFacts = document.querySelector("[data-node-facts]");
+      const nodeStorage = document.querySelector("[data-node-storage]");
+      const nodeNetwork = document.querySelector("[data-node-network]");
+      const nodeServices = document.querySelector("[data-node-services]");
+      const nodeLogs = document.querySelector("[data-node-logs]");
+      const controlAudit = document.querySelector("[data-control-audit]");
+      const languageToggle = document.querySelector("[data-language-toggle]");
+      const installButton = document.querySelector("[data-install]");
+      const pushButton = document.querySelector("[data-push]");
+      const mobileAlertCount = document.querySelector("[data-mobile-alert-count]");
+      const mobileNavItems = [...document.querySelectorAll("[data-mobile-nav] .mobile-nav-item")];
+      const pwaNotice = document.querySelector("[data-pwa-notice]");
+      const pwaMessage = document.querySelector("[data-pwa-message]");
+      const pwaAction = document.querySelector("[data-pwa-action]");
+      const pwaDismiss = document.querySelector("[data-pwa-dismiss]");
+      const installDialog = document.querySelector("[data-install-dialog]");
+      const body = document.body;
+      const copy = {
+        zh: { eyebrow: "PRIVATE OPERATIONS / READ ONLY", intro: "Cloudflare 管理面与 VPS 运行状态的只读视图。", waiting: "等待连接", connected: "全部在线", partial: "部分在线", offline: "连接失败", noServices: "无服务数据", availability: "服务可用率", availabilityEmpty: "等待服务历史数据。", events: "事件时间线", eventsEmpty: "暂无运维事件。", allEvents: "全部事件", failures: "故障", recoveries: "恢复", operations: "管理操作", allNodes: "全部节点", availabilityLabel: "可用率", averageLatency: "平均延迟", samples: "采样", since: "部署以来", storage: "存储", network: "私有网络", distribution: "系统", kernel: "内核", architecture: "架构", cpuModel: "处理器", loadAverage: "系统负载", memoryUsage: "内存用量", noData: "暂无数据", serviceLogs: "服务日志", selectLogs: "选择“日志”读取最近输出。", auditLog: "操作审计", viewLogs: "日志", restartService: "重启", restartPrompt: "输入服务名称以确认重启", actionFailed: "操作失败", coverage: "数据覆盖", accumulating: "数据积累中", detailLoading: "正在读取服务历史…", enablePush: "启用通知", pushEnabled: "通知已启用", pushDenied: "通知权限被拒绝", toolbarLabel: "状态连接", accessLabel: "CLOUDFLARE ACCESS", accessProtected: "身份验证已启用", logout: "退出", refresh: "刷新状态", install: "安装", loading: "读取中…", notRead: "尚未读取", metricsLabel: "系统指标", cpu: "CPU", memory: "内存", disk: "磁盘", uptime: "运行时间", load: "负载", used: "已使用", hostUptime: "主机运行时间", services: "运行中的服务", nodes: "Mesh 节点", serviceEmpty: "正在等待首次状态读取。", nodeEmpty: "读取状态后显示三台 VPS 节点。", alerts: "当前告警", alertEmpty: "暂无活动告警。", trading: "交易摘要", tradingEmpty: "尚未配置交易摘要。", pnl: "PnL", positions: "持仓", exposure: "敞口", balance: "余额", deployments: "部署版本", deploymentEmpty: "暂无部署版本数据。", history: "指标历史", historyEmpty: "等待定时采集产生历史数据。", navOverview: "概览", navServices: "服务", navNodes: "节点", navAlerts: "告警", stack: "Cloudflare Pages · Workers VPC · Cloudflare Mesh", readOnly: "写操作未启用", online: "在线", offlineNode: "离线", reachable: "可达", notReachable: "不可达", active: "活动", warning: "警告", critical: "严重", version: "版本", deployedAt: "部署时间", updated: "更新于", loginRequired: "登录已失效，请重新通过 Cloudflare Access 登录。", loadFailed: "读取状态失败", offlineMode: "当前离线", offlineNotice: "网络已断开；实时指标不会被缓存。", backOnline: "网络已恢复，正在刷新状态。", updateReady: "新版本已准备好。", updateNow: "立即更新", installed: "Control Center 已安装。", dismiss: "关闭提示", installTitle: "安装 Control Center", installIos: "在 Safari 中点击“共享”，然后选择“添加到主屏幕”。", close: "知道了" },
+        en: { eyebrow: "PRIVATE OPERATIONS / READ ONLY", intro: "A read-only view of Cloudflare control plane and VPS runtime health.", waiting: "Waiting for connection", connected: "All systems online", partial: "Partially online", offline: "Connection failed", noServices: "No service data", availability: "Service availability", availabilityEmpty: "Waiting for service history.", events: "Event timeline", eventsEmpty: "No operations events yet.", allEvents: "All events", failures: "Failures", recoveries: "Recoveries", operations: "Operations", allNodes: "All nodes", availabilityLabel: "Availability", averageLatency: "Average latency", samples: "Samples", since: "Since deployment", storage: "Storage", network: "Private network", distribution: "System", kernel: "Kernel", architecture: "Architecture", cpuModel: "Processor", loadAverage: "Load average", memoryUsage: "Memory usage", noData: "No data", serviceLogs: "Service logs", selectLogs: "Select Logs to read recent output.", auditLog: "Action audit", viewLogs: "Logs", restartService: "Restart", restartPrompt: "Type the service name to confirm restart", actionFailed: "Action failed", coverage: "Coverage", accumulating: "Collecting data", detailLoading: "Loading service history…", enablePush: "Enable alerts", pushEnabled: "Alerts enabled", pushDenied: "Notification permission denied", toolbarLabel: "Status connection", accessLabel: "CLOUDFLARE ACCESS", accessProtected: "Identity protection enabled", logout: "Sign out", refresh: "Refresh status", install: "Install", loading: "Loading…", notRead: "Not read yet", metricsLabel: "System metrics", cpu: "CPU", memory: "Memory", disk: "Disk", uptime: "Uptime", load: "load", used: "used", hostUptime: "host uptime", services: "Running services", nodes: "Mesh nodes", serviceEmpty: "Waiting for the first status read.", nodeEmpty: "The three VPS nodes will appear after status is loaded.", alerts: "Active alerts", alertEmpty: "No active alerts.", trading: "Trading snapshot", tradingEmpty: "Trading summary is not configured yet.", pnl: "PnL", positions: "Positions", exposure: "Exposure", balance: "Balance", deployments: "Deployments", deploymentEmpty: "No deployment version data.", history: "Metrics history", historyEmpty: "Waiting for scheduled collection to produce history.", navOverview: "Overview", navServices: "Services", navNodes: "Nodes", navAlerts: "Alerts", stack: "Cloudflare Pages · Workers VPC · Cloudflare Mesh", readOnly: "Write operations disabled", online: "ONLINE", offlineNode: "OFFLINE", reachable: "REACHABLE", notReachable: "UNREACHABLE", active: "ACTIVE", warning: "WARNING", critical: "CRITICAL", version: "Version", deployedAt: "Deployed", updated: "Updated", loginRequired: "Your session expired. Sign in through Cloudflare Access again.", loadFailed: "Failed to load status", offlineMode: "Offline", offlineNotice: "The network is unavailable; live metrics are never cached.", backOnline: "Connection restored. Refreshing status.", updateReady: "A new version is ready.", updateNow: "Update now", installed: "Control Center was installed.", dismiss: "Dismiss notification", installTitle: "Install Control Center", installIos: "In Safari, tap Share and then choose Add to Home Screen.", close: "Got it" }
+      };
+      copy.zh.nodeEmpty = "读取状态后显示配置的 VPS 节点。";
+      copy.en.nodeEmpty = "Configured VPS nodes will appear after status is loaded.";
+      let language = localStorage.getItem("dcc-language") || "zh";
+      let payloadCache = null;
+      let deferredInstallPrompt = null;
+      let autoRefreshTimer = null;
+      let lastUpdatedAt = null;
+      let serviceWorkerRegistration = null;
+      let refreshingForUpdate = false;
+      let noticeAction = null;
+      let selectedService = null;
+      let controlCache = { services: [], audit: [] };
+      let currentHistoryRange = "1h";
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+      const t = (key) => copy[language][key] || copy.zh[key] || key;
+      const safe = (value) => String(value ?? "—").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+      const formatDuration = (seconds) => { if (!Number.isFinite(seconds)) return "—"; const days = Math.floor(seconds / 86400); const hours = Math.floor((seconds % 86400) / 3600); const minutes = Math.floor((seconds % 3600) / 60); return days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes}m` : `${minutes}m`; };
+      const formatCoverage = (seconds) => seconds < 60 ? `<1m` : formatDuration(seconds);
+      const formatBytes = (bytes) => { if (!Number.isFinite(bytes)) return "—"; const units = ["B", "KB", "MB", "GB", "TB"]; const index = Math.min(Math.floor(Math.log(Math.max(bytes, 1)) / Math.log(1024)), units.length - 1); return `${(bytes / (1024 ** index)).toFixed(index > 2 ? 1 : 0)} ${units[index]}`; };
+
+      function applyLanguage() {
+        body.dataset.language = language;
+        body.lang = language === "zh" ? "zh-CN" : "en";
+        document.querySelectorAll("[data-i18n]").forEach((element) => { element.textContent = t(element.dataset.i18n); });
+        document.querySelectorAll("[data-i18n-attr]").forEach((element) => { element.dataset.i18nAttr.split(",").forEach((entry) => { const [attribute, key] = entry.split(":"); element.setAttribute(attribute, t(key)); }); });
+        languageToggle.textContent = language === "zh" ? "EN" : "中文";
+        languageToggle.setAttribute("aria-label", language === "zh" ? "Switch to English" : "切换到中文");
+        if (lastUpdatedAt) updated.textContent = `${t("updated")} ${lastUpdatedAt.toLocaleTimeString(language === "zh" ? "zh-CN" : "en-US")}`;
+        if (!pwaNotice.hidden && pwaNotice.dataset.messageKey) pwaMessage.textContent = t(pwaNotice.dataset.messageKey);
+        if (payloadCache) renderStatus(payloadCache);
+      }
+
+      function showPwaNotice(messageKey, actionKey = null, action = null, kind = "info") {
+        pwaNotice.hidden = false;
+        pwaNotice.dataset.kind = kind;
+        pwaNotice.dataset.messageKey = messageKey;
+        pwaMessage.textContent = t(messageKey);
+        noticeAction = action;
+        pwaAction.hidden = !actionKey;
+        pwaAction.textContent = actionKey ? t(actionKey) : "";
+      }
+
+      function hidePwaNotice() {
+        pwaNotice.hidden = true;
+        delete pwaNotice.dataset.kind;
+        delete pwaNotice.dataset.messageKey;
+        noticeAction = null;
+      }
+
+      function updateNetworkState({ recovered = false } = {}) {
+        const online = navigator.onLine;
+        body.classList.toggle("is-offline", !online);
+        if (!online) {
+          error.hidden = true;
+          overallDot.classList.add("is-down");
+          overallLabel.textContent = t("offlineMode");
+          showPwaNotice("offlineNotice", null, null, "offline");
+        }
+        else if (pwaNotice.dataset.kind === "offline") {
+          if (recovered) {
+            showPwaNotice("backOnline", null, null, "online");
+            window.setTimeout(() => { if (pwaNotice.dataset.kind === "online") hidePwaNotice(); }, 3500);
+          } else hidePwaNotice();
+        }
+      }
+
+      function setMetric(name, value, formatter = (item) => item ?? "—") { document.querySelector(`[data-metric="${name}"]`).textContent = formatter(value); }
+      const formatValue = (value) => value == null ? "—" : typeof value === "number" ? value.toLocaleString(language === "zh" ? "zh-CN" : "en-US", { maximumFractionDigits: 2 }) : String(value);
+      const formatDate = (value) => value ? new Date(value).toLocaleString(language === "zh" ? "zh-CN" : "en-US", { dateStyle: "short", timeStyle: "short" }) : "—";
+
+      function renderStatus(payload) {
+        const system = payload.system || {};
+        setMetric("cpuPercent", system.cpuPercent, (value) => value == null ? "—" : Math.round(value));
+        setMetric("memoryPercent", system.memoryPercent, (value) => value == null ? "—" : Math.round(value));
+        setMetric("diskPercent", system.diskPercent, (value) => value == null ? "—" : Math.round(value));
+        setMetric("uptimeSeconds", system.uptimeSeconds, formatDuration);
+        const items = Array.isArray(payload.services) ? payload.services : [];
+        const nodes = Array.isArray(payload.hosts) ? payload.hosts : [];
+        const healthy = nodes.length > 0 && nodes.every((item) => item.reachable);
+        overallDot.classList.toggle("is-down", !healthy);
+        overallLabel.textContent = nodes.length === 0 ? t("waiting") : healthy ? t("connected") : t("partial");
+        serviceCount.textContent = items.length ? `${items.filter((item) => item.status === "up").length}/${items.length} ${t("online").toLowerCase()}` : t("noServices");
+        services.innerHTML = items.length ? items.map((item) => `<button class="service-row" type="button" data-service-host="${safe(item.host)}" data-service-name="${safe(item.name)}"><span class="service-dot ${item.status === "up" ? "" : "is-down"}"></span><div><strong>${safe(item.name)}</strong><small>${safe(item.version || "unknown")}${item.detail ? ` · ${safe(item.detail)}` : ""}</small></div><span class="service-status ${item.status === "up" ? "is-up" : "is-down-text"}">${item.status === "up" ? t("online") : t("offlineNode")}</span><span class="service-uptime">${safe(item.uptimeSeconds == null ? item.host || "—" : formatDuration(item.uptimeSeconds))}</span></button>`).join("") : `<p class="empty-state">${t("noServices")}</p>`;
+
+        const currentAlerts = Array.isArray(payload.alerts) ? payload.alerts : [];
+        alertCount.textContent = currentAlerts.length ? `${currentAlerts.length} ${t("active").toLowerCase()}` : t("alertEmpty");
+        mobileAlertCount.textContent = currentAlerts.length > 9 ? "9+" : String(currentAlerts.length);
+        mobileAlertCount.hidden = currentAlerts.length === 0;
+        alerts.innerHTML = currentAlerts.length ? currentAlerts.map((item) => `<article class="alert-row ${item.severity === "critical" ? "is-critical" : "is-warning"}"><span class="alert-severity">${safe(item.severity === "critical" ? t("critical") : t("warning"))}</span><div><strong>${safe(item.message)}</strong><small>${safe(item.host || "Status API")} · ${safe(formatDate(item.createdAt))}</small></div></article>`).join("") : `<p class="empty-state">${t("alertEmpty")}</p>`;
+
+        const summary = payload.pnlSummary;
+        tradingStatus.textContent = summary ? t("active") : "—";
+        trading.innerHTML = summary ? [["pnl", summary.pnl], ["positions", summary.positions ?? summary.positionCount], ["exposure", summary.exposure], ["balance", summary.balance]].map(([key, value]) => `<article class="summary-card"><span>${t(key)}</span><strong>${safe(formatValue(value))}</strong></article>`).join("") : `<p class="empty-state">${t("tradingEmpty")}</p>`;
+
+        const reachableNodes = nodes.filter((node) => node.reachable);
+        if (historyHost.options.length === 1) historyHost.insertAdjacentHTML("beforeend", nodes.map((node) => `<option value="${safe(node.host)}">${safe(node.status?.node?.hostname || node.host)}</option>`).join(""));
+        hostCount.textContent = `${reachableNodes.length}/${nodes.length} ${t("reachable").toLowerCase()}`;
+        hosts.innerHTML = nodes.length ? nodes.map((node) => { const nodeSystem = node.status?.system || {}; return `<button type="button" class="host-card" data-node-host="${safe(node.host)}"><div class="host-heading"><span class="service-dot ${node.reachable ? "" : "is-down"}"></span><strong>${safe(node.status?.node?.hostname || node.host)}</strong><span class="service-status ${node.reachable ? "is-up" : "is-down-text"}">${node.reachable ? t("reachable") : t("notReachable")}</span></div><small>${safe(node.host)}${node.status?.node?.distribution ? ` · ${safe(node.status.node.distribution)}` : ""}</small><div class="host-metrics"><span>CPU <b>${safe(nodeSystem.cpuPercent == null ? "—" : Math.round(nodeSystem.cpuPercent))}%</b></span><span>RAM <b>${safe(nodeSystem.memoryPercent == null ? "—" : Math.round(nodeSystem.memoryPercent))}%</b></span><span>${t("disk")} <b>${safe(nodeSystem.diskPercent == null ? "—" : Math.round(nodeSystem.diskPercent))}%</b></span></div>${node.error ? `<small class="host-error">${safe(node.error)}</small>` : ""}</button>`; }).join("") : `<p class="empty-state">${t("nodeEmpty")}</p>`;
+
+        const releaseRows = Array.isArray(payload.deployments) ? payload.deployments : nodes.filter((node) => node.reachable).map((node) => ({ host: node.host, version: node.status?.version }));
+        deployments.innerHTML = releaseRows.length ? releaseRows.map((item) => `<article class="deployment-row"><div><strong>${safe(item.host)}</strong><small>${safe(t("version"))} ${safe(item.version || "unknown")}</small></div><span>${safe(formatDate(item.deployedAt))}</span></article>`).join("") : `<p class="empty-state">${t("deploymentEmpty")}</p>`;
+
+        renderHistory(Array.isArray(payload.history) ? payload.history : []);
+      }
+
+      function renderHistory(historyPoints) {
+        historyCount.textContent = historyPoints.length ? `${historyPoints.length} ${t("history").toLowerCase()}` : "—";
+        historyPanel.innerHTML = historyPoints.length ? `<div class="history-bars">${historyPoints.slice(-36).map((point) => `<span class="history-bar-wrap" title="${safe(formatDate(point.generatedAt))} · CPU ${safe(point.cpuPercent)}% · RAM ${safe(point.memoryPercent)}% · ${safe(t("disk"))} ${safe(point.diskPercent)}%"><span class="history-bar is-cpu" style="height:${Math.max(4, Math.min(100, point.cpuPercent ?? 0))}%"></span><span class="history-bar is-memory" style="height:${Math.max(4, Math.min(100, point.memoryPercent ?? 0))}%"></span><span class="history-bar is-disk" style="height:${Math.max(4, Math.min(100, point.diskPercent ?? 0))}%"></span></span>`).join("")}</div><div class="history-legend"><span><i class="legend-swatch"></i>CPU</span><span><i class="legend-swatch is-memory"></i>RAM</span><span><i class="legend-swatch is-disk"></i>${safe(t("disk"))}</span><span>${safe(t("updated"))} ${safe(formatDate(historyPoints.at(-1)?.generatedAt))}</span></div>` : `<p class="empty-state">${t("historyEmpty")}</p>`;
+      }
+
+      async function loadHistory(range) {
+        currentHistoryRange = range || currentHistoryRange;
+        historyRangeButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.historyRange === range));
+        try {
+          const metricsUrl = new URL(statusApiUrl, window.location.origin);
+          metricsUrl.pathname = metricsUrl.pathname.replace(/\/status$/, "/metrics");
+          metricsUrl.searchParams.set("range", range);
+          if (historyHost.value) metricsUrl.searchParams.set("host", historyHost.value);
+          const response = await fetch(metricsUrl, { credentials: "same-origin" });
+          const payload = await response.json().catch(() => ({}));
+          if (response.ok) renderHistory(Array.isArray(payload.data) ? payload.data : []);
+        } catch { /* status view remains usable when history is unavailable */ }
+      }
+
+      function apiUrl(resource) {
+        const url = new URL(statusApiUrl, window.location.origin);
+        url.pathname = url.pathname.replace(/\/status$/, `/${resource}`);
+        return url;
+      }
+
+      async function loadAvailability(range = "7d") {
+        availabilityRangeButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.availabilityRange === range));
+        try {
+          const url = apiUrl("services"); url.searchParams.set("range", range);
+          const response = await fetch(url, { credentials: "same-origin" });
+          const payload = await response.json().catch(() => ({}));
+          const rows = Array.isArray(payload.data) ? payload.data : [];
+          const requestedWindow = Number(payload.requestedWindowSeconds || 0);
+          availability.innerHTML = rows.length ? rows.map((item) => {
+            const coverage = Number(item.coverageSeconds || 0);
+            const isAccumulating = range !== "since" && (item.sampleCount < 2 || coverage < requestedWindow * 0.9);
+            const evidence = `${t("coverage")} ${formatCoverage(coverage)} · ${item.sampleCount || 0} ${t("samples")}`;
+            return `<button class="availability-row" type="button" data-service-host="${safe(item.host)}" data-service-name="${safe(item.name)}"><div><strong>${safe(item.name)}</strong><small>${safe(item.host)} · ${safe(Math.round(item.averageLatencyMs || 0))}ms</small><small>${safe(evidence)}</small></div><div class="availability-result"><span>${safe(item.availabilityPercent == null ? "—" : `${item.availabilityPercent}%`)}</span>${isAccumulating ? `<small>${safe(t("accumulating"))}</small>` : ""}</div></button>`;
+          }).join("") : `<p class="empty-state">${t("availabilityEmpty")}</p>`;
+        } catch { availability.innerHTML = `<p class="empty-state">${t("availabilityEmpty")}</p>`; }
+      }
+
+      async function loadEvents() {
+        try {
+          const url = apiUrl("events");
+          if (eventType.value) url.searchParams.set("type", eventType.value);
+          const response = await fetch(url, { credentials: "same-origin" });
+          const payload = await response.json().catch(() => ({}));
+          const rows = Array.isArray(payload.data) ? payload.data : [];
+          eventCount.textContent = String(rows.length || "—");
+          events.innerHTML = rows.length ? rows.map((item) => `<details class="event-row"><summary><span class="event-marker ${item.severity === "critical" ? "is-critical" : item.type === "incident_resolved" ? "is-resolved" : ""}"></span><span><strong>${safe(item.title)}</strong><small>${safe(item.host || "Cloudflare")} · ${safe(formatDate(item.occurredAt))}</small></span></summary><div class="event-detail"><span>${safe(item.type)}</span>${item.serviceName ? `<span>${safe(item.serviceName)}</span>` : ""}${item.actor ? `<span>${safe(item.actor)}</span>` : ""}${item.detail ? `<p>${safe(item.detail)}</p>` : ""}</div></details>`).join("") : `<p class="empty-state">${t("eventsEmpty")}</p>`;
+        } catch { events.innerHTML = `<p class="empty-state">${t("eventsEmpty")}</p>`; }
+      }
+
+      function exportResource(resource, params) {
+        const url = apiUrl(resource); Object.entries(params).forEach(([key, value]) => { if (value) url.searchParams.set(key, value); }); url.searchParams.set("format", "csv"); window.location.assign(url);
+      }
+
+      async function openServiceDetail(host, name, range = "24h") {
+        selectedService = { host, name };
+        serviceDialogTitle.textContent = name;
+        serviceDialogHost.textContent = host;
+        serviceDetailMetrics.innerHTML = `<p class="empty-state">${t("detailLoading")}</p>`;
+        serviceDetailChart.innerHTML = "";
+        if (!serviceDialog.open) serviceDialog.showModal();
+        serviceRangeButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.serviceRange === range));
+        const url = apiUrl("services"); url.searchParams.set("host", host); url.searchParams.set("name", name); url.searchParams.set("range", range);
+        try {
+          const response = await fetch(url, { credentials: "same-origin" });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error("service history unavailable");
+          serviceDetailMetrics.innerHTML = [[t("availabilityLabel"), payload.availabilityPercent == null ? "—" : `${payload.availabilityPercent}%`], [t("averageLatency"), payload.averageLatencyMs == null ? "—" : `${Math.round(payload.averageLatencyMs)}ms`], [t("coverage"), `${formatCoverage(Number(payload.coverageSeconds || 0))} · ${payload.sampleCount || 0} ${t("samples")}`]].map(([label, value]) => `<article><span>${safe(label)}</span><strong>${safe(value)}</strong></article>`).join("");
+          const points = Array.isArray(payload.data) ? payload.data : [];
+          serviceDetailChart.innerHTML = points.length ? `<div class="history-bars">${points.slice(-48).map((point) => `<span class="history-bar-wrap" title="${safe(formatDate(point.generatedAt))}"><span class="history-bar service-latency-bar" style="height:${Math.max(8, Math.min(100, point.availabilityPercent ?? 0))}%"></span></span>`).join("")}</div>` : `<p class="empty-state">${t("historyEmpty")}</p>`;
+        } catch { serviceDetailMetrics.innerHTML = `<p class="empty-state">${t("historyEmpty")}</p>`; }
+      }
+
+      function openNodeDetail(host) {
+        const node = payloadCache?.hosts?.find((item) => item.host === host);
+        if (!node) return;
+        const info = node.status?.node || {};
+        const system = node.status?.system || {};
+        nodeDialogTitle.textContent = info.hostname || host;
+        nodeDialogAddress.textContent = `${host} · ${node.reachable ? t("reachable") : t("notReachable")}`;
+        const load = Array.isArray(system.loadAverages) ? system.loadAverages.filter(Number.isFinite).join(" / ") : "—";
+        const memory = system.memoryBytes || {};
+        nodeFacts.innerHTML = [[t("distribution"), info.distribution], [t("kernel"), info.kernelRelease], [t("architecture"), info.architecture], [t("cpuModel"), `${info.cpu?.model || "—"}${info.cpu?.logicalCores ? ` · ${info.cpu.logicalCores} cores` : ""}`], [t("loadAverage"), load], [t("memoryUsage"), `${formatBytes(memory.used)} / ${formatBytes(memory.total)}`]].map(([label, value]) => `<article><span>${safe(label)}</span><strong>${safe(value)}</strong></article>`).join("");
+        const storageRows = Array.isArray(info.storage) ? info.storage : [];
+        nodeStorage.innerHTML = storageRows.length ? storageRows.map((item) => `<div><span><strong>${safe(item.mount)}</strong><small>${safe(item.filesystem)}</small></span><span>${safe(formatBytes(item.usedBytes))} / ${safe(formatBytes(item.totalBytes))} · ${safe(item.usedPercent)}%</span></div>`).join("") : `<p class="empty-state">${t("noData")}</p>`;
+        const networkRows = Array.isArray(info.network) ? info.network : [];
+        nodeNetwork.innerHTML = networkRows.length ? networkRows.map((item) => `<div><span><strong>${safe(item.name)}</strong><small>${safe(item.family)}</small></span><span>${safe(item.cidr || item.address)}</span></div>`).join("") : `<p class="empty-state">${t("noData")}</p>`;
+        const serviceRows = Array.isArray(node.status?.services) ? node.status.services : [];
+        nodeServices.innerHTML = serviceRows.length ? serviceRows.map((item) => {
+          const control = controlCache.services.find((entry) => entry.host === host && entry.name === item.name);
+          const actions = control ? `<span class="control-actions">${control.canReadLogs ? `<button type="button" data-control-action="logs" data-control-host="${safe(host)}" data-control-name="${safe(item.name)}">${safe(t("viewLogs"))}</button>` : ""}${control.canRestart ? `<button type="button" class="is-danger" data-control-action="restart" data-control-host="${safe(host)}" data-control-name="${safe(item.name)}">${safe(t("restartService"))}</button>` : ""}</span>` : `<span class="service-status ${item.status === "up" ? "is-up" : "is-down-text"}">${item.status === "up" ? t("online") : t("offlineNode")}</span>`;
+          return `<div><span><strong>${safe(item.name)}</strong><small>${safe(item.version || item.source)}</small></span>${actions}</div>`;
+        }).join("") : `<p class="empty-state">${t("noData")}</p>`;
+        renderControlAudit(host);
+        nodeLogs.textContent = t("selectLogs");
+        if (!nodeDialog.open) nodeDialog.showModal();
+      }
+
+      async function loadControls() {
+        try {
+          const response = await fetch(apiUrl("controls"), { credentials: "same-origin" });
+          if (!response.ok) return;
+          const payload = await response.json();
+          controlCache = { services: Array.isArray(payload.services) ? payload.services : [], audit: Array.isArray(payload.audit) ? payload.audit : [] };
+        } catch { /* management controls remain hidden */ }
+      }
+
+      function renderControlAudit(host) {
+        const rows = controlCache.audit.filter((item) => item.host === host).slice(0, 10);
+        controlAudit.innerHTML = rows.length ? rows.map((item) => `<div><span><strong>${safe(item.name)} · ${safe(item.action)}</strong><small>${safe(item.actor)} · ${safe(formatDate(item.createdAt))}</small></span><span>${safe(item.status)}</span></div>`).join("") : `<p class="empty-state">${t("noData")}</p>`;
+      }
+
+      async function runControlAction(action, host, name) {
+        let confirmation = null;
+        if (action === "restart") {
+          confirmation = window.prompt(`${t("restartPrompt")}: ${name}`);
+          if (confirmation !== name) return;
+        }
+        if (action === "logs") nodeLogs.textContent = t("loading");
+        const response = await fetch(apiUrl("controls"), { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requestId: crypto.randomUUID(), action, host, name, confirmation, lines: 150 }) });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) { nodeLogs.textContent = payload.error || t("actionFailed"); return; }
+        if (action === "logs") nodeLogs.textContent = payload.logs || t("noData");
+        await loadControls(); renderControlAudit(host);
+        if (action === "restart") setTimeout(loadStatus, 1500);
+      }
+
+      async function loadStatus() {
+        error.hidden = true; loadButton.disabled = true; loadButton.textContent = t("loading");
+        try {
+          const response = await fetch(statusApiUrl, { credentials: "same-origin" });
+          const payload = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) throw new Error(t("loginRequired"));
+          if (payload.offline) throw new Error(t("offlineNotice"));
+          if (!response.ok) throw new Error(payload.error || `Status API returned ${response.status}`);
+          payloadCache = payload; await loadControls(); renderStatus(payload); await Promise.all([loadAvailability(), loadEvents()]); lastUpdatedAt = new Date(); updated.textContent = `${t("updated")} ${lastUpdatedAt.toLocaleTimeString(language === "zh" ? "zh-CN" : "en-US")}`;
+          startAutoRefresh();
+        } catch (loadError) { overallDot.classList.add("is-down"); overallLabel.textContent = navigator.onLine ? t("offline") : t("offlineMode"); error.textContent = loadError instanceof Error ? loadError.message : t("loadFailed"); error.hidden = !navigator.onLine; }
+        finally { loadButton.disabled = false; loadButton.textContent = t("refresh"); }
+      }
+
+      languageToggle.addEventListener("click", () => { language = language === "zh" ? "en" : "zh"; localStorage.setItem("dcc-language", language); applyLanguage(); });
+      loadButton.addEventListener("click", loadStatus);
+      historyRangeButtons.forEach((button) => button.addEventListener("click", () => loadHistory(button.dataset.historyRange)));
+      historyHost.addEventListener("change", () => loadHistory(currentHistoryRange));
+      historyExport.addEventListener("click", () => exportResource("metrics", { range: currentHistoryRange, host: historyHost.value }));
+      eventType.addEventListener("change", loadEvents);
+      eventsExport.addEventListener("click", () => exportResource("events", { type: eventType.value }));
+      availabilityRangeButtons.forEach((button) => button.addEventListener("click", () => loadAvailability(button.dataset.availabilityRange)));
+      document.addEventListener("click", (event) => { const target = event.target.closest("[data-service-host][data-service-name]"); if (target) openServiceDetail(target.dataset.serviceHost, target.dataset.serviceName); });
+      document.addEventListener("click", (event) => { const target = event.target.closest("[data-node-host]"); if (target) openNodeDetail(target.dataset.nodeHost); });
+      document.addEventListener("click", (event) => { const target = event.target.closest("[data-control-action]"); if (target) { event.stopPropagation(); runControlAction(target.dataset.controlAction, target.dataset.controlHost, target.dataset.controlName); } });
+      serviceRangeButtons.forEach((button) => button.addEventListener("click", () => selectedService && openServiceDetail(selectedService.host, selectedService.name, button.dataset.serviceRange)));
+      document.querySelector("[data-service-dialog-close]").addEventListener("click", () => serviceDialog.close());
+      document.querySelector("[data-node-dialog-close]").addEventListener("click", () => nodeDialog.close());
+      mobileNavItems.forEach((item) => item.addEventListener("click", () => { mobileNavItems.forEach((navItem) => navItem.classList.toggle("is-active", navItem === item)); }));
+      pwaAction.addEventListener("click", () => noticeAction?.());
+      pwaDismiss.addEventListener("click", hidePwaNotice);
+
+      function startAutoRefresh() {
+        window.clearInterval(autoRefreshTimer);
+        autoRefreshTimer = window.setInterval(() => {
+          if (document.visibilityState === "visible" && navigator.onLine) loadStatus();
+        }, 300_000);
+      }
+
+      window.addEventListener("beforeinstallprompt", (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        installButton.hidden = false;
+      });
+      installButton.addEventListener("click", async () => {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          await deferredInstallPrompt.userChoice;
+          deferredInstallPrompt = null;
+          installButton.hidden = true;
+        } else if (isIos) installDialog.showModal();
+      });
+      window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; installButton.hidden = true; showPwaNotice("installed", null, null, "online"); });
+      window.addEventListener("offline", () => updateNetworkState());
+      window.addEventListener("online", () => { updateNetworkState({ recovered: true }); loadStatus(); serviceWorkerRegistration?.update(); });
+
+      function offerServiceWorkerUpdate(registration) {
+        if (!registration.waiting || !navigator.serviceWorker.controller) return;
+        showPwaNotice("updateReady", "updateNow", () => {
+          refreshingForUpdate = true;
+          registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+        }, "update");
+      }
+
+      function decodeApplicationServerKey(value) {
+        const padding = "=".repeat((4 - value.length % 4) % 4);
+        const bytes = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
+        return Uint8Array.from(bytes, (character) => character.charCodeAt(0));
+      }
+
+      async function configurePush(registration) {
+        if (!("PushManager" in window) || !("Notification" in window)) return;
+        try {
+          const response = await fetch(apiUrl("push"), { credentials: "same-origin" });
+          const config = await response.json();
+          if (!response.ok || !config.enabled || !config.publicKey) return;
+          const existing = await registration.pushManager.getSubscription();
+          pushButton.hidden = false;
+          pushButton.textContent = existing ? t("pushEnabled") : t("enablePush");
+          pushButton.disabled = Boolean(existing);
+          pushButton.onclick = async () => {
+            const permission = await Notification.requestPermission();
+            if (permission !== "granted") { showPwaNotice("pushDenied", null, null, "offline"); return; }
+            const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeApplicationServerKey(config.publicKey) });
+            const saved = await fetch(apiUrl("push"), { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscription: subscription.toJSON() }) });
+            if (saved.ok) { pushButton.textContent = t("pushEnabled"); pushButton.disabled = true; showPwaNotice("pushEnabled", null, null, "online"); }
+          };
+        } catch { /* Push remains optional when unsupported or unavailable. */ }
+      }
+
+      async function registerPwa() {
+        if (!("serviceWorker" in navigator)) return;
+        try {
+          serviceWorkerRegistration = await navigator.serviceWorker.register("/dashboard/sw.js", { scope: "/dashboard/" });
+          offerServiceWorkerUpdate(serviceWorkerRegistration);
+          serviceWorkerRegistration.addEventListener("updatefound", () => {
+            const worker = serviceWorkerRegistration.installing;
+            worker?.addEventListener("statechange", () => {
+              if (worker.state === "installed") offerServiceWorkerUpdate(serviceWorkerRegistration);
+            });
+          });
+          const readyRegistration = await navigator.serviceWorker.ready;
+          await configurePush(readyRegistration);
+          const staticAssets = performance.getEntriesByType("resource")
+            .map((entry) => entry.name)
+            .filter((value) => {
+              try {
+                const url = new URL(value);
+                return url.origin === window.location.origin && url.pathname.startsWith("/_astro/");
+              } catch { return false; }
+            });
+          readyRegistration.active?.postMessage({ type: "CACHE_STATIC_ASSETS", urls: staticAssets });
+        } catch (registrationError) {
+          console.warn("PWA registration failed", registrationError);
+        }
+      }
+
+      navigator.serviceWorker?.addEventListener("controllerchange", () => {
+        if (refreshingForUpdate) window.location.reload();
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && navigator.onLine) serviceWorkerRegistration?.update();
+      });
+      if (isIos && !isStandalone) installButton.hidden = false;
+      window.addEventListener("load", registerPwa);
+      updateNetworkState();
+      applyLanguage();
+      loadStatus();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#111615" />
+    <title>Developer Control Center · Offline</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      * { box-sizing: border-box; }
+      body { display: grid; min-height: 100dvh; margin: 0; place-items: center; padding: max(1.5rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left)); background: radial-gradient(circle at 12% 0%, #21352d 0, transparent 38rem), #111615; color: #e7efe7; }
+      main { width: min(100%, 31rem); }
+      .signal { display: inline-block; width: 0.65rem; height: 0.65rem; margin-bottom: 2rem; border-radius: 999px; background: #e3c47b; box-shadow: 0 0 0 0.45rem rgba(227, 196, 123, 0.1); }
+      h1 { max-width: 100%; margin: 0; font-size: clamp(2.25rem, 10.5vw, 4.5rem); letter-spacing: -0.055em; line-height: 0.96; }
+      p { margin: 1.5rem 0 0; color: #94a69b; font-size: 1rem; line-height: 1.65; }
+      p + p { margin-top: 0.5rem; font-size: 0.86rem; }
+      button { min-height: 3rem; margin-top: 2rem; border: 0; border-radius: 0.55rem; background: #8be0a1; color: #102017; cursor: pointer; font: inherit; font-weight: 800; padding: 0.75rem 1.1rem; }
+      button:focus-visible { outline: 3px solid #e7efe7; outline-offset: 3px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="signal" aria-hidden="true"></span>
+      <h1>当前处于离线状态</h1>
+      <p>应用外壳仍可使用，但实时 VPS 指标和告警不会被缓存。恢复网络后即可安全地重新读取状态。</p>
+      <p lang="en">The app shell is available offline. Live infrastructure data will resume when your connection returns.</p>
+      <button type="button" onclick="location.reload()">重新连接 / Retry</button>
+    </main>
+  </body>
+</html>
