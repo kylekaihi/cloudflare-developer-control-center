@@ -1,5 +1,7 @@
 # Cloudflare Developer Control Center
 
+面向 Cloudflare 与 VPS 环境的开源开发者运维控制中心，提供双语 Dashboard、PWA、主机与服务监控、历史数据、事件告警及安全的白名单运维操作。
+
 An open-source, mobile-friendly operations dashboard for small Cloudflare and VPS environments. It combines Cloudflare Pages, Workers, Access, D1, Cloudflare One Mesh, and lightweight Node.js agents into one deployable control center.
 
 ## Features
