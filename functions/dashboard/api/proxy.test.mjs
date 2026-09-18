@@ -63,3 +63,14 @@ test("preserves CSV response metadata", async () => {
   assert.match(response.headers.get("Content-Type"), /text\/csv/);
   assert.match(response.headers.get("Content-Disposition"), /events\.csv/);
 });
+
+test("proxies maintenance window reads and writes", async () => {
+  const methods = [];
+  const response = await onRequest({
+    request: new Request("https://dashboard.example.com/dashboard/api/maintenance", { method: "POST", headers: { "Cf-Access-Jwt-Assertion": "access-jwt", "Content-Type": "application/json" }, body: JSON.stringify({ reason: "Deploying" }) }),
+    params: { path: ["maintenance"] },
+    env: { STATUS_WORKER: { fetch: async (request) => { methods.push(request.method); return Response.json({ ok: true }); } } },
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(methods, ["POST"]);
+});

@@ -9,6 +9,8 @@ An open-source, mobile-friendly operations dashboard for small Cloudflare and VP
 - Bilingual Chinese/English responsive dashboard and installable PWA
 - Multi-VPS health, CPU, memory, disk, uptime, network, and service monitoring
 - Historical metrics, service availability, incidents, and event timelines in D1
+- Docker service discovery with stale-service cleanup and configurable alert thresholds
+- Access-protected maintenance windows that suppress matching incident notifications
 - Optional allowlisted service restart and redacted log viewing
 - Cloudflare Access authentication and service-token verification
 - Optional Telegram and Web Push notifications

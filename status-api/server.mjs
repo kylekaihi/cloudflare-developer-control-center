@@ -2,6 +2,8 @@ import { execFileSync } from "node:child_process";
 import http from "node:http";
 import { isAllowedServiceUrl, matchesServiceToken, normalizeRequestId } from "./security.mjs";
 import { collectNodeInfo, collectSystemMetrics } from "./system-info.mjs";
+import { collectAlerts, readAlertRules } from "./alerts.mjs";
+import { dockerDiscoveryArgs, mergeServices } from "./discovery.mjs";
 
 const port = Number(process.env.STATUS_API_PORT || 8787);
 const serviceToken = process.env.STATUS_SERVICE_TOKEN || "";
@@ -9,6 +11,9 @@ const previousServiceToken = process.env.STATUS_SERVICE_TOKEN_PREVIOUS || "";
 const services = readJson(process.env.STATUS_SERVICES_JSON, []);
 const pnlSummary = readJson(process.env.STATUS_PNL_SUMMARY_JSON, null);
 const dockerDiscoveryEnabled = process.env.STATUS_ENABLE_DOCKER_DISCOVERY === "true";
+const dockerDiscoveryMode = process.env.STATUS_DOCKER_DISCOVERY_MODE === "all" ? "all" : "running";
+const serviceDiscoveryMode = process.env.STATUS_SERVICE_DISCOVERY_MODE === "replace" ? "replace" : "merge";
+const alertRules = readAlertRules(process.env.STATUS_ALERT_RULES_JSON);
 const history = [];
 const maxHistory = 60;
 
@@ -32,7 +37,7 @@ const server = http.createServer(async (request, response) => {
     const system = collectSystemMetrics();
     const configuredServices = await Promise.all(services.map(checkService));
     const dockerServices = dockerDiscoveryEnabled ? collectDockerServices() : [];
-    const monitoredServices = mergeServices(configuredServices, dockerServices);
+    const monitoredServices = mergeServices(configuredServices, dockerServices, serviceDiscoveryMode);
     const generatedAt = new Date().toISOString();
     recordHistory(generatedAt, system);
     return sendJson(response, 200, {
@@ -49,7 +54,7 @@ const server = http.createServer(async (request, response) => {
         deployedAt: process.env.STATUS_DEPLOYED_AT || null,
         release: process.env.STATUS_RELEASE || null,
       },
-      alerts: collectAlerts(system, monitoredServices),
+      alerts: collectAlerts(system, monitoredServices, alertRules),
       docker: dockerServices,
     }, requestId);
   } catch (error) {
@@ -67,7 +72,7 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(port, "0.0.0.0", () => {
-  logEvent("info", "service_started", { port, configuredServices: services.length, dockerDiscoveryEnabled });
+  logEvent("info", "service_started", { port, configuredServices: services.length, dockerDiscoveryEnabled, dockerDiscoveryMode, serviceDiscoveryMode });
 });
 
 async function checkService(service) {
@@ -111,7 +116,7 @@ function collectDockerServices() {
   try {
     const output = execFileSync(
       "docker",
-      ["ps", "-a", "--format", "{{.Names}}\t{{.State}}\t{{.Image}}\t{{.Status}}"],
+      dockerDiscoveryArgs(dockerDiscoveryMode),
       { encoding: "utf8", timeout: 2_500 },
     );
     return output
@@ -135,42 +140,9 @@ function collectDockerServices() {
   }
 }
 
-function mergeServices(configuredServices, dockerServices) {
-  const names = new Set(configuredServices.map((service) => service.name));
-  return configuredServices.concat(dockerServices.filter((service) => !names.has(service.name)));
-}
-
 function recordHistory(generatedAt, system) {
   history.push({ generatedAt, ...system });
   if (history.length > maxHistory) history.splice(0, history.length - maxHistory);
-}
-
-function collectAlerts(system, monitoredServices) {
-  const alerts = [];
-  const addThreshold = (value, threshold, code, message) => {
-    if (typeof value === "number" && value >= threshold) {
-      alerts.push({
-        severity: value >= threshold + 5 ? "critical" : "warning",
-        code,
-        message: `${message}: ${value}%`,
-        createdAt: new Date().toISOString(),
-      });
-    }
-  };
-  addThreshold(system.cpuPercent, 90, "cpu_high", "CPU usage is high");
-  addThreshold(system.memoryPercent, 90, "memory_high", "Memory usage is high");
-  addThreshold(system.diskPercent, 85, "disk_high", "Disk usage is high");
-  for (const service of monitoredServices) {
-    if (service.status !== "up") {
-      alerts.push({
-        severity: "critical",
-        code: "service_down",
-        message: `${service.name} is unavailable`,
-        createdAt: new Date().toISOString(),
-      });
-    }
-  }
-  return alerts;
 }
 
 async function readJsonResponse(response) {

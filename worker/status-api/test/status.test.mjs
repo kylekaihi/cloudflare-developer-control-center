@@ -4,6 +4,7 @@ import test from "node:test";
 import worker from "../src/index.js";
 import { hasValidAccessIdentity } from "../src/access-auth.js";
 import { persistSnapshot, planIncidentTransitions } from "../src/persistence.js";
+import { incidentServiceName, matchesMaintenanceWindow, normalizeMaintenanceWindow } from "../src/maintenance.js";
 import { formatTelegramMessage } from "../src/notifications.js";
 
 function makeDb() {
@@ -136,6 +137,18 @@ test("exposes optional Web Push configuration without disclosing private keys", 
   assert.equal(JSON.stringify(body).includes("private-vapid"), false);
 });
 
+test("lists active maintenance windows with the read-only token", async () => {
+  const response = await worker.fetch(new Request("https://status.example.com/api/maintenance", { headers: { Authorization: "Bearer public-token" } }), makeEnv(), ctx);
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.deepEqual(body.data, []);
+});
+
+test("requires a Cloudflare Access identity for maintenance writes", async () => {
+  const response = await worker.fetch(new Request("https://status.example.com/api/maintenance", { method: "POST", headers: { Authorization: "Bearer public-token", "Content-Type": "application/json" }, body: JSON.stringify({ reason: "Deploying" }) }), makeEnv(), ctx);
+  assert.equal(response.status, 403);
+});
+
 test("never permits VPS controls through the diagnostic bearer token", async () => {
   const response = await worker.fetch(new Request("https://status.example.com/api/controls", { headers: { Authorization: "Bearer public-token" } }), makeEnv({ VPS_CONTROL_CATALOG: "[]" }), ctx);
   assert.equal(response.status, 403);
@@ -151,6 +164,29 @@ test("opens once after the confirmation window and resolves once", () => {
   const resolved = planIncidentTransitions(opened.upserts, [], base + 240_000, 180_000);
   assert.equal(resolved.upserts[0].status, "resolved");
   assert.equal(resolved.notifications[0].type, "resolved");
+});
+
+test("normalizes scoped maintenance windows and matches active ranges", () => {
+  const base = 1_786_536_000_000;
+  const window = normalizeMaintenanceWindow({ host: "100.96.0.12", serviceName: "Polymarket Bot", startsAt: base, endsAt: base + 60_000, reason: "Deploying" }, { now: base, actor: "ops@example.com", id: "mw-test-001" });
+  assert.equal(window.host, "100.96.0.12");
+  assert.equal(matchesMaintenanceWindow(window, "100.96.0.12", "Polymarket Bot", base + 30_000), true);
+  assert.equal(matchesMaintenanceWindow(window, "100.96.0.13", "Polymarket Bot", base + 30_000), false);
+  assert.equal(matchesMaintenanceWindow(window, "100.96.0.12", "Polymarket Bot", base + 60_000), false);
+  assert.throws(() => normalizeMaintenanceWindow({ startsAt: base, endsAt: base + 31 * 24 * 60 * 60 * 1_000, reason: "Too long" }, { now: base, id: "mw-test-002" }), /30 days/);
+});
+
+test("suppresses new and existing incidents during maintenance", () => {
+  const base = 1_000_000;
+  const condition = { alertKey: "host|service_down|Bot is unavailable", host: "host", code: "service_down", severity: "critical", message: "Bot is unavailable" };
+  const window = { host: "host", serviceName: "Bot", startsAt: base, endsAt: base + 600_000 };
+  const suppressed = (item) => matchesMaintenanceWindow(window, item.host, incidentServiceName(item), base + 1_000);
+  const fresh = planIncidentTransitions([], [condition], base + 1_000, 0, suppressed);
+  assert.deepEqual(fresh.upserts, []);
+  const existing = { ...condition, status: "open", consecutiveCount: 4, firstSeenAt: base - 10_000, lastSeenAt: base, openedAt: base, resolvedAt: null };
+  const retained = planIncidentTransitions([existing], [condition], base + 1_000, 0, suppressed);
+  assert.deepEqual(retained.upserts, []);
+  assert.deepEqual(retained.notifications, []);
 });
 
 test("records a deployment event only when a node version changes", async () => {

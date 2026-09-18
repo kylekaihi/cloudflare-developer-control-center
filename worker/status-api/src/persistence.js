@@ -1,3 +1,5 @@
+import { maintenanceWindowToApi } from "./maintenance.js";
+
 const RANGE_CONFIG = {
   "1h": { durationMs: 60 * 60 * 1_000, bucketMs: 60 * 1_000 },
   "24h": { durationMs: 24 * 60 * 60 * 1_000, bucketMs: 5 * 60 * 1_000 },
@@ -123,6 +125,34 @@ export async function readIncidents(db, { status = "open", limit = 100 } = {}) {
   return (result.results || []).map(mapIncident);
 }
 
+export async function readMaintenanceWindows(db, { activeAt = null, limit = 100 } = {}) {
+  const normalizedLimit = Math.max(1, Math.min(Number(limit) || 100, 200));
+  const filter = activeAt == null ? "" : "WHERE starts_at <= ? AND ends_at > ?";
+  const statement = db.prepare(
+    `SELECT id, host, service_name, starts_at, ends_at, reason, actor, created_at
+     FROM maintenance_windows ${filter}
+     ORDER BY starts_at ASC LIMIT ?`,
+  );
+  const result = activeAt == null
+    ? await statement.bind(normalizedLimit).all()
+    : await statement.bind(activeAt, activeAt, normalizedLimit).all();
+  return (result.results || []).map(maintenanceWindowToApi);
+}
+
+export async function createMaintenanceWindow(db, entry) {
+  await db.prepare(
+    `INSERT INTO maintenance_windows
+      (id, host, service_name, starts_at, ends_at, reason, actor, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(entry.id, entry.host, entry.serviceName, entry.startsAt, entry.endsAt, entry.reason, entry.actor, entry.createdAt).run();
+  return entry;
+}
+
+export async function deleteMaintenanceWindow(db, id) {
+  const result = await db.prepare("DELETE FROM maintenance_windows WHERE id = ?").bind(id).run();
+  return Number(result.meta?.changes || 0) === 1;
+}
+
 export async function reconcileIncidents(db, conditions, options = {}) {
   const now = options.now ?? Date.now();
   const confirmMs = options.confirmMs ?? 3 * 60 * 1_000;
@@ -131,7 +161,7 @@ export async function reconcileIncidents(db, conditions, options = {}) {
     "SELECT * FROM incidents WHERE status IN ('pending', 'open')",
   ).all();
   const existing = (existingResult.results || []).map(mapIncidentRow);
-  const transitions = planIncidentTransitions(existing, conditions, now, confirmMs);
+  const transitions = planIncidentTransitions(existing, conditions, now, confirmMs, options.isSuppressed);
   const statements = transitions.upserts.map((incident) => db.prepare(
     `INSERT INTO incidents
       (alert_key, host, code, severity, message, status, consecutive_count,
@@ -192,13 +222,14 @@ export async function reconcileIncidents(db, conditions, options = {}) {
   return transitions;
 }
 
-export function planIncidentTransitions(existing, conditions, now, confirmMs) {
+export function planIncidentTransitions(existing, conditions, now, confirmMs, isSuppressed = () => false) {
   const currentByKey = new Map(conditions.map((condition) => [condition.alertKey, condition]));
   const existingByKey = new Map(existing.map((incident) => [incident.alertKey, incident]));
   const upserts = [];
   const notifications = [];
 
   for (const condition of conditions) {
+    if (isSuppressed(condition)) continue;
     const previous = existingByKey.get(condition.alertKey);
     const incident = previous
       ? { ...previous, ...condition, lastSeenAt: now, consecutiveCount: previous.consecutiveCount + 1, resolvedAt: null }

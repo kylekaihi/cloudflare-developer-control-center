@@ -514,6 +514,15 @@ details.event-row summary > span:nth-child(2) { display: grid; flex: 1; gap: 0.2
 .control-actions button { border: 1px solid var(--control-line); border-radius: 0.4rem; background: transparent; color: var(--control-ink); cursor: pointer; font: inherit; font-size: 0.72rem; padding: 0.4rem 0.55rem; }
 .control-actions button:hover, .control-actions button:focus-visible { border-color: var(--control-green); outline: none; }
 .control-actions button.is-danger { border-color: rgba(227, 140, 123, 0.35); color: #e38c7b; }
+.maintenance-actions { display: flex; align-items: center; gap: 0.75rem; }
+.maintenance-actions button, .maintenance-row button { border: 1px solid var(--control-line); border-radius: 0.4rem; background: transparent; color: var(--control-ink); cursor: pointer; font: inherit; font-size: 0.72rem; padding: 0.4rem 0.55rem; }
+.maintenance-actions button:hover, .maintenance-actions button:focus-visible, .maintenance-row button:hover, .maintenance-row button:focus-visible { border-color: var(--control-green); outline: none; }
+.maintenance-row button.is-danger { border-color: rgba(227, 140, 123, 0.35); color: #e38c7b; }
+.maintenance-list { border-bottom: 1px solid var(--control-line); }
+.maintenance-row { display: flex; align-items: center; gap: 1rem; min-height: 4.5rem; padding: 0.8rem 0; border-bottom: 1px solid var(--control-line); }
+.maintenance-row:last-child { border-bottom: 0; }
+.maintenance-row > div { display: grid; flex: 1; gap: 0.2rem; min-width: 0; }
+.maintenance-row small { color: var(--control-muted); font-size: 0.74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .control-logs { min-height: 8rem; max-height: 20rem; margin: 0; overflow: auto; border: 1px solid var(--control-line); border-radius: 0.65rem; background: rgba(4, 8, 7, 0.42); color: #c9d6d1; font: 0.72rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0.9rem; white-space: pre-wrap; word-break: break-word; }
 .empty-state { margin: 0; padding: 26px 0; color: var(--control-muted); }
 .control-footer { margin-top: 42px; padding-top: 18px; border-top: 1px solid var(--control-line); color: var(--control-muted); font-size: 0.75rem; }

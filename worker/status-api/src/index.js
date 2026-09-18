@@ -1,12 +1,16 @@
 import { hasValidAccessIdentity, readAccessIdentity } from "./access-auth.js";
 import { deliverPendingNotifications } from "./notifications.js";
+import { incidentServiceName, matchesMaintenanceWindow, normalizeMaintenanceWindow } from "./maintenance.js";
 import {
+  createMaintenanceWindow,
+  deleteMaintenanceWindow,
   persistSnapshot,
   pruneOldData,
   readAvailabilitySummary,
   readEvents,
   readIncidents,
   readMetricHistory,
+  readMaintenanceWindows,
   readServiceHistory,
   savePushSubscription,
   deletePushSubscription,
@@ -85,10 +89,11 @@ async function handleRequest(request, env, requestId) {
       });
     }
 
-    const readRoutes = new Set(["/api/status", "/api/metrics", "/api/incidents", "/api/services", "/api/events", "/api/push", "/api/controls"]);
+    const readRoutes = new Set(["/api/status", "/api/metrics", "/api/incidents", "/api/services", "/api/events", "/api/push", "/api/controls", "/api/maintenance"]);
     const pushWrite = pathname === "/api/push" && ["POST", "DELETE"].includes(request.method);
     const controlWrite = pathname === "/api/controls" && request.method === "POST";
-    if (!(request.method === "GET" && readRoutes.has(pathname)) && !pushWrite && !controlWrite) {
+    const maintenanceWrite = pathname === "/api/maintenance" && ["POST", "DELETE"].includes(request.method);
+    if (!(request.method === "GET" && readRoutes.has(pathname)) && !pushWrite && !controlWrite && !maintenanceWrite) {
       return jsonResponse({ error: "Not found", requestId }, 404, headers);
     }
 
@@ -101,6 +106,31 @@ async function handleRequest(request, env, requestId) {
 
     if (!env.DB) {
       return jsonResponse({ error: "Monitoring database is not configured", requestId }, 503, headers);
+    }
+
+    if (pathname === "/api/maintenance") {
+      const identity = request.method === "GET" ? null : await readAccessIdentity(request, env);
+      if (request.method !== "GET" && !identity) return jsonResponse({ error: "Cloudflare Access identity required", requestId }, 403, headers);
+      if (request.method === "GET") {
+        const data = await readMaintenanceWindows(env.DB, { activeAt: Date.now(), limit: 100 });
+        return jsonResponse({ data, generatedAt: new Date().toISOString(), requestId }, 200, headers);
+      }
+      const contentLength = Number(request.headers.get("Content-Length") || 0);
+      if (contentLength > 16_384) return jsonResponse({ error: "Payload too large", requestId }, 413, headers);
+      if (request.method === "DELETE") {
+        const id = url.searchParams.get("id") || "";
+        if (!/^[A-Za-z0-9_-]{8,128}$/.test(id)) return jsonResponse({ error: "Invalid maintenance id", requestId }, 422, headers);
+        const deleted = await deleteMaintenanceWindow(env.DB, id);
+        return jsonResponse({ ok: deleted, requestId }, deleted ? 200 : 404, headers);
+      }
+      const body = await request.json().catch(() => null);
+      try {
+        const entry = normalizeMaintenanceWindow(body, { actor: identity.email || identity.subject || "access-user" });
+        await createMaintenanceWindow(env.DB, entry);
+        return jsonResponse({ data: entry, requestId }, 201, headers);
+      } catch (error) {
+        return jsonResponse({ error: error instanceof Error ? error.message : "Invalid maintenance window", requestId }, 422, headers);
+      }
     }
 
     if (pathname === "/api/controls") {
@@ -220,10 +250,12 @@ async function runScheduledCollection(event, env) {
   const now = event.scheduledTime || Date.now();
   await persistSnapshot(env.DB, snapshot, now);
   const conditions = deriveAlertConditions(snapshot.hosts);
+  const maintenanceWindows = await readMaintenanceWindows(env.DB, { activeAt: now, limit: 100 });
   const transitions = await reconcileIncidents(env.DB, conditions, {
     now,
     confirmMs: readConfirmMs(env),
     notificationsEnabled: Boolean((env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) || (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY)),
+    isSuppressed: (condition) => maintenanceWindows.some((window) => matchesMaintenanceWindow(window, condition.host, incidentServiceName(condition), now)),
   });
   const notifications = await deliverPendingNotifications(env);
   if (new Date(now).getUTCMinutes() === 0) await pruneOldData(env.DB, now);
@@ -542,7 +574,7 @@ function corsHeaders(origin, env) {
   return {
     ...(allowOrigin ? { "Access-Control-Allow-Origin": allowOrigin, Vary: "Origin" } : {}),
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Content-Type": "application/json; charset=utf-8",
   };
 }

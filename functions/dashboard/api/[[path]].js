@@ -1,4 +1,4 @@
-const ALLOWED_RESOURCES = new Set(["status", "metrics", "incidents", "services", "events", "push", "controls"]);
+const ALLOWED_RESOURCES = new Set(["status", "metrics", "incidents", "services", "events", "push", "controls", "maintenance"]);
 
 export async function onRequest(context) {
   const startedAt = Date.now();
@@ -32,7 +32,7 @@ export async function onRequest(context) {
 async function proxyRequest(context, requestId) {
   const resource = readResource(context.params.path);
   if (!ALLOWED_RESOURCES.has(resource)) return jsonError("NOT_FOUND", "Resource not found", 404);
-  const allowedMethods = resource === "push" ? new Set(["GET", "POST", "DELETE"]) : resource === "controls" ? new Set(["GET", "POST"]) : new Set(["GET"]);
+  const allowedMethods = ["push", "maintenance"].includes(resource) ? new Set(["GET", "POST", "DELETE"]) : resource === "controls" ? new Set(["GET", "POST"]) : new Set(["GET"]);
   if (!allowedMethods.has(context.request.method)) return jsonError("METHOD_NOT_ALLOWED", "Method not supported", 405, { Allow: [...allowedMethods].join(", ") });
   if (!context.env.STATUS_WORKER?.fetch) return jsonError("UPSTREAM_NOT_CONFIGURED", "Status service binding is not configured", 503);
 
