@@ -4,6 +4,7 @@ import { isAllowedServiceUrl, matchesServiceToken, normalizeRequestId } from "./
 import { collectNodeInfo, collectSystemMetrics } from "./system-info.mjs";
 import { collectAlerts, readAlertRules } from "./alerts.mjs";
 import { dockerDiscoveryArgs, mergeServices } from "./discovery.mjs";
+import { probeExternalCheck, readExternalChecks } from "./external.mjs";
 
 const port = Number(process.env.STATUS_API_PORT || 8787);
 const serviceToken = process.env.STATUS_SERVICE_TOKEN || "";
@@ -14,6 +15,7 @@ const dockerDiscoveryEnabled = process.env.STATUS_ENABLE_DOCKER_DISCOVERY === "t
 const dockerDiscoveryMode = process.env.STATUS_DOCKER_DISCOVERY_MODE === "all" ? "all" : "running";
 const serviceDiscoveryMode = process.env.STATUS_SERVICE_DISCOVERY_MODE === "replace" ? "replace" : "merge";
 const alertRules = readAlertRules(process.env.STATUS_ALERT_RULES_JSON);
+const externalChecks = readExternalChecks(process.env.STATUS_EXTERNAL_CHECKS_JSON);
 const history = [];
 const maxHistory = 60;
 
@@ -35,9 +37,12 @@ const server = http.createServer(async (request, response) => {
     }
 
     const system = collectSystemMetrics();
-    const configuredServices = await Promise.all(services.map(checkService));
+    const [configuredServices, checkedExternal] = await Promise.all([
+      Promise.all(services.map(checkService)),
+      Promise.all(externalChecks.map((check) => probeExternalCheck(check))),
+    ]);
     const dockerServices = dockerDiscoveryEnabled ? collectDockerServices() : [];
-    const monitoredServices = mergeServices(configuredServices, dockerServices, serviceDiscoveryMode);
+    const monitoredServices = mergeServices(configuredServices, dockerServices, dockerDiscoveryEnabled ? serviceDiscoveryMode : "merge");
     const generatedAt = new Date().toISOString();
     recordHistory(generatedAt, system);
     return sendJson(response, 200, {
@@ -47,6 +52,7 @@ const server = http.createServer(async (request, response) => {
       node: collectNodeInfo(),
       history: history.slice(-maxHistory),
       services: monitoredServices,
+      externalChecks: checkedExternal,
       pnlSummary,
       deployment: {
         version: process.env.STATUS_RELEASE || process.env.STATUS_GIT_COMMIT || "unknown",
@@ -72,7 +78,7 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(port, "0.0.0.0", () => {
-  logEvent("info", "service_started", { port, configuredServices: services.length, dockerDiscoveryEnabled, dockerDiscoveryMode, serviceDiscoveryMode });
+  logEvent("info", "service_started", { port, configuredServices: services.length, externalChecks: externalChecks.length, dockerDiscoveryEnabled, dockerDiscoveryMode, serviceDiscoveryMode });
 });
 
 async function checkService(service) {

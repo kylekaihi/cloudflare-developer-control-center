@@ -39,6 +39,7 @@ const values = {
   STATUS_DOCKER_DISCOVERY_MODE: "running",
   VPS_STATUS_DISCOVERY_MODE: "merge",
   VPS_STATUS_ALERT_RULES_JSON: JSON.stringify({ cpu: { warning: 90, critical: 95 }, memory: { warning: 90, critical: 95 }, disk: { warning: 85, critical: 95 }, serviceDown: { enabled: true } }),
+  VPS_STATUS_EXTERNAL_CHECKS_JSON: "[]",
   AUTO_ROLLBACK_ON_FAILURE: "true",
   SKIP_VPS_DEPLOY: "false",
   POST_DEPLOY_TIMEOUT_SECONDS: "90",

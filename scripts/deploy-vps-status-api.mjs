@@ -109,6 +109,7 @@ function writeEnvironmentFile(path, target) {
     `STATUS_DOCKER_DISCOVERY_MODE=${envValue(process.env.STATUS_DOCKER_DISCOVERY_MODE === "all" ? "all" : "running")}`,
     `STATUS_SERVICE_DISCOVERY_MODE=${envValue(process.env.VPS_STATUS_DISCOVERY_MODE === "replace" ? "replace" : "merge")}`,
     `STATUS_ALERT_RULES_JSON=${envValue(process.env.VPS_STATUS_ALERT_RULES_JSON || "{}")}`,
+    `STATUS_EXTERNAL_CHECKS_JSON=${envValue(process.env.VPS_STATUS_EXTERNAL_CHECKS_JSON || "[]")}`,
     `VPS_CONTROL_ACTIONS_JSON=${envValue(JSON.stringify(controlActionsByTarget[target.name] || []))}`,
     "",
   ].join("\n");

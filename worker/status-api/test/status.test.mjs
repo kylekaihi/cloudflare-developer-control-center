@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import test from "node:test";
-import worker from "../src/index.js";
+import worker, { deriveAlertConditions } from "../src/index.js";
 import { hasValidAccessIdentity } from "../src/access-auth.js";
 import { persistSnapshot, planIncidentTransitions } from "../src/persistence.js";
 import { incidentServiceName, matchesMaintenanceWindow, normalizeMaintenanceWindow } from "../src/maintenance.js";
@@ -57,6 +57,7 @@ function makeEnv(overrides = {}) {
           deployment: { version: "release-1", deployedAt: "2026-08-12T10:00:00.000Z" },
           alerts: [{ severity: "warning", code: "cpu_high", message: "CPU usage is high", createdAt: "2026-08-12T12:00:00.000Z" }],
           docker: [{ name: "Polymarket Bot", status: "up", source: "docker", version: "v1" }],
+          externalChecks: [{ id: "public-api", name: "Public API", url: "https://example.com/health", status: "up", httpStatus: 200, latencyMs: 84, tls: { expiresAt: "2026-10-01T00:00:00.000Z", daysRemaining: 12 }, alerts: [{ code: "tls_expiring", severity: "warning", message: "TLS certificate expires in 12 days" }] }],
         }), { headers: { "Content-Type": "application/json" } });
       },
     },
@@ -92,6 +93,9 @@ test("reads and filters status through the Mesh binding", async () => {
   assert.equal(body.deployments[0].version, "release-1");
   assert.equal(body.alerts[0].host, "100.96.0.12");
   assert.equal(body.docker[0].host, "100.96.0.12");
+  assert.equal(body.externalChecks[0].name, "Public API");
+  assert.equal(body.externalChecks[0].sourceHost, "100.96.0.12");
+  assert.equal(body.hosts[0].status.externalChecks[0].alerts[0].code, "tls_expiring");
   assert.equal(body.history.length, 1);
   assert.equal(response.headers.get("Access-Control-Allow-Origin"), "https://dashboard.example.com");
   assert.equal(response.headers.get("X-Frame-Options"), "DENY");
@@ -187,6 +191,16 @@ test("suppresses new and existing incidents during maintenance", () => {
   const retained = planIncidentTransitions([existing], [condition], base + 1_000, 0, suppressed);
   assert.deepEqual(retained.upserts, []);
   assert.deepEqual(retained.notifications, []);
+});
+
+test("turns external check alerts into deduplicated incident conditions", () => {
+  const conditions = deriveAlertConditions([
+    { host: "100.96.0.12", reachable: true, status: { alerts: [], externalChecks: [{ id: "public-api", name: "Public API", alerts: [{ code: "tls_expiring", severity: "warning", message: "TLS expires soon" }] }] } },
+    { host: "100.96.0.13", reachable: true, status: { alerts: [], externalChecks: [{ id: "public-api", name: "Public API", alerts: [{ code: "tls_expiring", severity: "warning", message: "TLS expires soon" }] }] } },
+  ]);
+  assert.equal(conditions.length, 1);
+  assert.equal(conditions[0].alertKey, "external|public-api|tls_expiring");
+  assert.equal(conditions[0].host, "external");
 });
 
 test("records a deployment event only when a node version changes", async () => {

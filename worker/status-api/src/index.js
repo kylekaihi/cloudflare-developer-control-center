@@ -290,7 +290,7 @@ async function collectSnapshot(env, requestId) {
   };
 }
 
-function deriveAlertConditions(hosts) {
+export function deriveAlertConditions(hosts) {
   const conditions = [];
   for (const node of hosts) {
     if (!node.reachable) {
@@ -313,8 +313,19 @@ function deriveAlertConditions(hosts) {
         message: alert.message,
       });
     }
+    for (const check of node.status?.externalChecks || []) {
+      for (const alert of check.alerts || []) {
+        conditions.push({
+          alertKey: `external|${check.id}|${alert.code}`.slice(0, 768),
+          host: "external",
+          code: alert.code,
+          severity: alert.severity,
+          message: `${check.name}: ${alert.message}`,
+        });
+      }
+    }
   }
-  return conditions;
+  return [...new Map(conditions.map((condition) => [condition.alertKey, condition])).values()];
 }
 
 function incidentToAlert(incident) {
@@ -383,6 +394,7 @@ function normalizeStatus(payload) {
     deployment: plainObject(source.deployment),
     alerts: Array.isArray(source.alerts) ? source.alerts.map(normalizeAlert).filter(Boolean) : [],
     docker: Array.isArray(source.docker) ? source.docker.map(normalizeService).filter(Boolean) : [],
+    externalChecks: Array.isArray(source.externalChecks) ? source.externalChecks.map(normalizeExternalCheck).filter(Boolean) : [],
   };
 }
 
@@ -432,6 +444,30 @@ function normalizeAlert(alert) {
     code: stringOr(alert.code, "alert"),
     message: stringOr(alert.message, "Alert"),
     createdAt: stringOrNull(alert.createdAt),
+  };
+}
+
+function normalizeExternalCheck(check) {
+  if (!check || typeof check !== "object") return null;
+  const tls = check.tls && typeof check.tls === "object" ? {
+    expiresAt: stringOrNull(check.tls.expiresAt),
+    daysRemaining: numberOrNull(check.tls.daysRemaining),
+  } : null;
+  const alerts = Array.isArray(check.alerts) ? check.alerts.map((alert) => ({
+    code: stringOr(alert?.code, "external_alert"),
+    severity: alert?.severity === "critical" ? "critical" : "warning",
+    message: stringOr(alert?.message, "External check alert"),
+  })).slice(0, 8) : [];
+  return {
+    id: stringOr(check.id, "external-check"),
+    name: stringOr(check.name, "External check"),
+    url: stringOr(check.url, "—"),
+    status: check.status === "up" ? "up" : "down",
+    httpStatus: Number.isInteger(check.httpStatus) ? check.httpStatus : null,
+    latencyMs: numberOrNull(check.latencyMs),
+    error: stringOrNull(check.error),
+    tls,
+    alerts,
   };
 }
 
@@ -518,13 +554,38 @@ function aggregateStatus(hosts) {
     alerts: online.flatMap((host) => host.status.alerts.map((alert) => ({
       ...alert,
       host: host.host,
-    }))),
+    }))).concat(online.flatMap((host) => host.status.externalChecks.flatMap((check) => check.alerts.map((alert) => ({
+      ...alert,
+      message: `${check.name}: ${alert.message}`,
+      host: "external",
+      createdAt: host.status.generatedAt,
+    }))))),
+    externalChecks: mergeExternalChecks(online),
     pnlSummary: online.map((host) => host.status.pnlSummary).find(Boolean) || null,
     deployments: online.map((host) => ({
       host: host.host,
       ...(host.status.deployment || { version: host.status.version }),
     })),
   };
+}
+
+function mergeExternalChecks(hosts) {
+  const checks = new Map();
+  for (const host of hosts) {
+    for (const check of host.status.externalChecks) {
+      const candidate = { ...check, sourceHost: host.host };
+      const current = checks.get(check.id);
+      if (!current || externalCheckScore(candidate) > externalCheckScore(current)) checks.set(check.id, candidate);
+    }
+  }
+  return [...checks.values()];
+}
+
+function externalCheckScore(check) {
+  if (check.status === "down") return 3;
+  if (check.alerts.some((alert) => alert.severity === "critical")) return 2;
+  if (check.alerts.length) return 1;
+  return 0;
 }
 
 function plainObject(value) {

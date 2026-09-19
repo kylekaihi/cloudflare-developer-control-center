@@ -35,6 +35,8 @@ Notifications are queued only when both values are configured. An incident must 
 - `DELETE /api/maintenance?id=<id>` — remove a maintenance window; requires a Cloudflare Access identity.
 - `GET /healthz` — unauthenticated process health only.
 
+The aggregate status includes `externalChecks` with the latest HTTP status, latency, and HTTPS certificate days remaining. External check alerts are converted into the same D1 incident and notification pipeline as VPS alerts.
+
 The five-minute Cron Trigger performs collection. Metrics are retained for 90 days; resolved incidents and delivered notifications are retained for 180 days.
 
 ### Maintenance windows

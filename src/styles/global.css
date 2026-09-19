@@ -434,6 +434,13 @@ a:hover {
 .service-row:hover, .service-row:focus-visible, .availability-row:hover, .availability-row:focus-visible { background: rgba(139, 224, 161, 0.05); outline: none; }
 .service-row > div { display: grid; flex: 1; gap: 3px; }
 .service-row small { color: var(--control-muted); font-size: 0.78rem; }
+.external-check-list { border-bottom: 1px solid var(--control-line); }
+.external-check-row { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 0.75rem 0; border-bottom: 1px solid var(--control-line); }
+.external-check-row:last-child { border-bottom: 0; }
+.external-check-row > div { display: grid; flex: 1; gap: 3px; min-width: 0; }
+.external-check-row small { color: var(--control-muted); font-size: 0.76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.external-check-alert.is-warning, .is-warning-text { color: #e3c47b; }
+.external-check-alert.is-critical { color: #e38c7b; }
 .service-status { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.09em; }
 .is-up { color: var(--control-green); }
 .is-down-text { color: #e38c7b; }

@@ -39,6 +39,7 @@ fi
 install_release() {
   require_source
   "$NODE" --check "${SOURCE_DIR}/server.mjs" >/dev/null
+  "$NODE" --check "${SOURCE_DIR}/external.mjs" >/dev/null
   "$NODE" --check "${SOURCE_DIR}/control-server.mjs" >/dev/null
   validate_environment_source
 
@@ -54,6 +55,7 @@ install_release() {
   if [[ ! -d "$release_dir" ]]; then
     install -d -m 0755 "$release_dir"
     install -m 0644 "${SOURCE_DIR}/server.mjs" "${release_dir}/server.mjs"
+    install -m 0644 "${SOURCE_DIR}/external.mjs" "${release_dir}/external.mjs"
     install -m 0644 "${SOURCE_DIR}/security.mjs" "${release_dir}/security.mjs"
     install -m 0644 "${SOURCE_DIR}/system-info.mjs" "${release_dir}/system-info.mjs"
     install -m 0644 "${SOURCE_DIR}/control-server.mjs" "${release_dir}/control-server.mjs"
@@ -174,7 +176,7 @@ require_source() {
     echo "install/upgrade requires --source DIR." >&2
     exit 66
   fi
-  for file in server.mjs security.mjs system-info.mjs control-server.mjs package.json developer-control-center-status.service developer-control-center-control.service; do
+  for file in server.mjs external.mjs security.mjs system-info.mjs control-server.mjs package.json developer-control-center-status.service developer-control-center-control.service; do
     [[ -f "${SOURCE_DIR}/${file}" ]] || { echo "Source is missing ${file}." >&2; exit 66; }
   done
 }
@@ -209,9 +211,9 @@ validate_installed_environment() {
 release_hash() {
   local environment_input="$1"
   if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "${SOURCE_DIR}/server.mjs" "${SOURCE_DIR}/security.mjs" "${SOURCE_DIR}/system-info.mjs" "${SOURCE_DIR}/control-server.mjs" "${SOURCE_DIR}/package.json" "${SOURCE_DIR}/developer-control-center-status.service" "${SOURCE_DIR}/developer-control-center-control.service" "$environment_input" | awk '{print $1}' | sha256sum | cut -c1-16
+    sha256sum "${SOURCE_DIR}/server.mjs" "${SOURCE_DIR}/external.mjs" "${SOURCE_DIR}/security.mjs" "${SOURCE_DIR}/system-info.mjs" "${SOURCE_DIR}/control-server.mjs" "${SOURCE_DIR}/package.json" "${SOURCE_DIR}/developer-control-center-status.service" "${SOURCE_DIR}/developer-control-center-control.service" "$environment_input" | awk '{print $1}' | sha256sum | cut -c1-16
   else
-    shasum -a 256 "${SOURCE_DIR}/server.mjs" "${SOURCE_DIR}/security.mjs" "${SOURCE_DIR}/system-info.mjs" "${SOURCE_DIR}/control-server.mjs" "${SOURCE_DIR}/package.json" "${SOURCE_DIR}/developer-control-center-status.service" "${SOURCE_DIR}/developer-control-center-control.service" "$environment_input" | awk '{print $1}' | shasum -a 256 | cut -c1-16
+    shasum -a 256 "${SOURCE_DIR}/server.mjs" "${SOURCE_DIR}/external.mjs" "${SOURCE_DIR}/security.mjs" "${SOURCE_DIR}/system-info.mjs" "${SOURCE_DIR}/control-server.mjs" "${SOURCE_DIR}/package.json" "${SOURCE_DIR}/developer-control-center-status.service" "${SOURCE_DIR}/developer-control-center-control.service" "$environment_input" | awk '{print $1}' | shasum -a 256 | cut -c1-16
   fi
 }
 
