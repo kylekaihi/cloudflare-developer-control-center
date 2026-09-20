@@ -35,11 +35,11 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",
-    "astro": "^7.2.1",
+    "astro": "^7.3.3",
     "typescript": "^5.9.3",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "wrangler": "^4.122.0"
+    "wrangler": "^4.134.0"
   }
 }
